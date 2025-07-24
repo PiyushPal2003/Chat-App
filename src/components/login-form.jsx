@@ -11,9 +11,11 @@ export function LoginForm({
 
   const [authState, setAuthState] = useState('Login');
   const [passVisible, setPassVisible] = useState(false);
+  const [authType, setAuthType] = useState('Login');
 
   function changeAuthState() {
-    setAuthState(authState === 'Login' ? 'Sign up' : 'Login');
+    setAuthState((prev)=> prev === 'Login' ? 'Sign up' : 'Login');
+    setAuthType(authState === 'Login' ? 'Sign up' : 'Login');
   }
 
   function toggleEye() {
@@ -47,8 +49,8 @@ export function LoginForm({
             </a>
           </div>
 
-          <div className="flex items-between">
-            <Input id="password" type={passVisible ? "text" : "password"} pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,}$" title="Must contain Uppercase, Lowercase and Numbers" required />
+          <div className="flex items-between border" style={{ border: '1.2px solid #e5e5e5', borderRadius: '0.6rem' }}>
+            <Input className="border-0" id="password" type={passVisible ? "text" : "password"} pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,}$" title="Must contain Uppercase, Lowercase and Numbers" required />
 
             {
               passVisible ? (
