@@ -1,5 +1,5 @@
 import ProtectedRoute from './component/ProtectRoute/ProtectedRoute'
-import LoginPage from './component/Login/LoginPage'
+import AuthPage from './component/UserAuth/AuthPage'
 import {BrowserRouter as Router, Routes, Route} from 'react-router-dom'
 
 function App() {
@@ -9,7 +9,7 @@ function App() {
       {/* <LoginPage /> */}
       <Router>
         <Routes>
-          <Route path="/" element={<LoginPage />} />
+          <Route path="/" element={<AuthPage />} />
 
           <Route element={<ProtectedRoute />} >
             

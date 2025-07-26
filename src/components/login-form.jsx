@@ -21,36 +21,58 @@ export function LoginForm({
   function toggleEye() {
     setPassVisible((prev) => !prev);
   }
+  function handleProfilePhoto(event) {
+    const file = event.target.files[0];
+    console.log(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.querySelector('img').src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
+    <form className={cn(`flex flex-col ${authState === 'Login' ? 'gap-6' : 'gap-3'}`, className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">{authState == 'Login' ? 'Login to your account' : 'Create your account'}</h1>
         <p className="text-muted-foreground text-sm text-balance">
           Enter your details below to {authState == 'Login' ? 'Login to your account' : 'Create a new account'}
         </p>
       </div>
-      <div className="grid gap-6">
+
+      {authState == 'Sign up' && (
+        <div className="flex items-center justify-center flex-col">
+          <img src="./assets/user_img.jpg" className="w-17 h-17 rounded-full" />
+          <Label htmlFor="profile-photo" className="cursor-pointer text-sm hover:underline">Upload Profile Photo</Label>
+          <input type="file" id="profile-photo" className="hidden object-cover" placeholder="Upload Profile Photo" onChange={handleProfilePhoto}/>
+        </div>
+      )}
+
+      <div className="grid gap-5">
         {authState == 'Sign up' && (
           <div className="grid gap-3">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" type="text" placeholder="Name" pattern="^[A-Za-z]{1,10}$" title="Alphabets only, upto 10 characters" required />
+            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="name" type="text" placeholder="Name" pattern="^[A-Za-z]{1,10}$" title="Alphabets only, upto 10 characters" style={{ border: '1.2px solid #e5e5e5' , borderRadius: '0.6rem'}} required />
           </div>
         )}
         <div className="grid gap-3">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="m@example.com" required />
+          <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:border" id="email" type="email" placeholder="m@example.com" style={{ border: '1.2px solid #e5e5e5' , borderRadius: '0.6rem'}} required />
         </div>
         <div className="grid gap-3">
           <div className="flex items-center">
             <Label htmlFor="password">Password</Label>
-            <a href="#" className="ml-auto text-sm underline-offset-4 hover:underline">
-              Forgot your password?
-            </a>
+            { authState == 'Login' &&
+              <a href="#" className="ml-auto text-sm underline-offset-4 hover:underline">
+                Forgot your password?
+              </a>
+            }
           </div>
 
-          <div className="flex items-between border" style={{ border: '1.2px solid #e5e5e5', borderRadius: '0.6rem' }}>
-            <Input className="border-0" id="password" type={passVisible ? "text" : "password"} pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,}$" title="Must contain Uppercase, Lowercase and Numbers" required />
+          <div className="flex items-between border shadow-xs" style={{ border: '1.2px solid #e5e5e5', borderRadius: '0.6rem' }}>
+            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="password" type={passVisible ? "text" : "password"} pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,8}$" title="Must contain Uppercase, Lowercase and Numbers, upto 8 characters" required />
 
             {
               passVisible ? (
