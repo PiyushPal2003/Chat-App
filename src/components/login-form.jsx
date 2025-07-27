@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from "react";
+import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
+import axios from "axios";
 
 export function LoginForm({
   className,
@@ -21,6 +23,7 @@ export function LoginForm({
   function toggleEye() {
     setPassVisible((prev) => !prev);
   }
+
   function handleProfilePhoto(event) {
     const file = event.target.files[0];
     console.log(file);
@@ -33,8 +36,51 @@ export function LoginForm({
     }
   }
 
+  function googleBtnClick() {
+    const response = useGoogleLogin({
+        onSuccess: (response) => {
+          console.log('Google Auth Success:', response);
+        },
+        onError: (error) => console.log('Login Failed:', error)
+    });
+  }
+
+function handleFormSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const profilePhoto = formData.get('profilePhoto');
+
+  const isDummyPhoto = profilePhoto && profilePhoto.name === "user_img.jpg";
+
+  const data = {
+    name: formData.get('name'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+    type: authType,
+  };
+
+  if (!isDummyPhoto && profilePhoto && profilePhoto.name) {
+    data.profilePhoto = profilePhoto;
+  }
+
+  console.log('Form Data:', data);
+
+  axios.post('http://localhost:5000/api/auth', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }
+  ).then((response) => {
+    console.log('Response:', response.data);
+  }).catch((error) => {
+    console.error('Error:', error);
+    alert("Error creating user: " + error.response.data.error);
+  });
+}
+
+
   return (
-    <form className={cn(`flex flex-col ${authState === 'Login' ? 'gap-6' : 'gap-3'}`, className)} {...props}>
+    <form id="authForm" onSubmit={handleFormSubmit} className={cn(`flex flex-col ${authState === 'Login' ? 'gap-6' : 'gap-3'}`, className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">{authState == 'Login' ? 'Login to your account' : 'Create your account'}</h1>
         <p className="text-muted-foreground text-sm text-balance">
@@ -44,9 +90,9 @@ export function LoginForm({
 
       {authState == 'Sign up' && (
         <div className="flex items-center justify-center flex-col">
-          <img src="./assets/user_img.jpg" className="w-17 h-17 rounded-full" />
+          <img src="./assets/user_img.jpg" className="w-17 h-17 rounded-full object-cover" />
           <Label htmlFor="profile-photo" className="cursor-pointer text-sm hover:underline">Upload Profile Photo</Label>
-          <input type="file" id="profile-photo" className="hidden object-cover" placeholder="Upload Profile Photo" onChange={handleProfilePhoto}/>
+          <input type="file" id="profile-photo" className="hidden" placeholder="Upload Profile Photo" name="profilePhoto" onChange={handleProfilePhoto}/>
         </div>
       )}
 
@@ -54,25 +100,25 @@ export function LoginForm({
         {authState == 'Sign up' && (
           <div className="grid gap-3">
             <Label htmlFor="name">Name</Label>
-            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="name" type="text" placeholder="Name" pattern="^[A-Za-z]{1,10}$" title="Alphabets only, upto 10 characters" style={{ border: '1.2px solid #e5e5e5' , borderRadius: '0.6rem'}} required />
+            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="name" type="text" placeholder="Name" pattern="^[A-Za-z]{1,10}$" title="Alphabets only, upto 10 characters" style={{ border: '1.2px solid #e5e5e5' , borderRadius: '0.6rem'}} name="name" required />
           </div>
         )}
         <div className="grid gap-3">
           <Label htmlFor="email">Email</Label>
-          <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:border" id="email" type="email" placeholder="m@example.com" style={{ border: '1.2px solid #e5e5e5' , borderRadius: '0.6rem'}} required />
+          <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:border" id="email" type="email" placeholder="m@example.com" style={{ border: '1.2px solid #e5e5e5' , borderRadius: '0.6rem'}} name="email" required />
         </div>
         <div className="grid gap-3">
           <div className="flex items-center">
             <Label htmlFor="password">Password</Label>
-            { authState == 'Login' &&
+            {/* { authState == 'Login' &&
               <a href="#" className="ml-auto text-sm underline-offset-4 hover:underline">
                 Forgot your password?
               </a>
-            }
+            } */}
           </div>
 
           <div className="flex items-between border shadow-xs" style={{ border: '1.2px solid #e5e5e5', borderRadius: '0.6rem' }}>
-            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="password" type={passVisible ? "text" : "password"} pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,8}$" title="Must contain Uppercase, Lowercase and Numbers, upto 8 characters" required />
+            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="password" type={passVisible ? "text" : "password"} pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,8}$" title="Must contain Uppercase, Lowercase and Numbers, upto 8 characters" name="password" required />
 
             {
               passVisible ? (
@@ -93,7 +139,7 @@ export function LoginForm({
           </div>
 
         </div>
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full cursor-pointer">
           {authState}
         </Button>
         <div
@@ -102,12 +148,20 @@ export function LoginForm({
             Or continue with
           </span>
         </div>
-        <Button variant="outline" className="w-full flex items-center justify-center">
+        <Button variant="outline" className="w-full flex items-center justify-center" onClick={googleBtnClick}>
           <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="100" height="100" viewBox="0 0 48 48">
           <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
           </svg>
           Continue with Google
         </Button>
+        {/* <GoogleLogin onSuccess={async(res)=>{
+          console.log(res)
+          console.log(res.access_token);
+          const userClientId = await res.clientId;
+
+          }}
+          onError={(err)=>console.log(err)}
+        /> */}
       </div>
       <div className="text-center text-sm">
         {authState == 'Login' ? `Don't have an account? ` : `Already have an account? `}

@@ -1,7 +1,7 @@
 import React from 'react'
 import {Outlet} from 'react-router-dom';
 
-function ProtectedRoute({children}) {
+function ProtectedRoute() {
     // if(localStorage.getItem("token") === null) {
     //     console.log("No token found, redirecting to login page");
     // }
