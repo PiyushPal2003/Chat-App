@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import axios from "axios";
 
@@ -14,6 +14,7 @@ export function LoginForm({
   const [authState, setAuthState] = useState('Login');
   const [passVisible, setPassVisible] = useState(false);
   const [authType, setAuthType] = useState('Login');
+  const submitRefbtn = useRef(null);
 
   function changeAuthState() {
     setAuthState((prev)=> prev === 'Login' ? 'Sign up' : 'Login');
@@ -47,6 +48,8 @@ export function LoginForm({
 
 function handleFormSubmit(event) {
   event.preventDefault();
+  submitRefbtn.current.disabled = true;
+  
   const formData = new FormData(event.target);
   const profilePhoto = formData.get('profilePhoto');
 
@@ -63,9 +66,9 @@ function handleFormSubmit(event) {
     data.profilePhoto = profilePhoto;
   }
 
-  console.log('Form Data:', data);
+  // console.log('Form Data:', data);
 
-  axios.post('http://localhost:5000/api/auth', data, {
+  axios.post('http://localhost:5000/api/auth/register', data, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -73,6 +76,7 @@ function handleFormSubmit(event) {
   ).then((response) => {
     console.log('Response:', response.data);
   }).catch((error) => {
+    submitRefbtn.current.disabled = false;
     console.error('Error:', error);
     alert("Error creating user: " + error.response.data.error);
   });
@@ -139,7 +143,7 @@ function handleFormSubmit(event) {
           </div>
 
         </div>
-        <Button type="submit" className="w-full cursor-pointer">
+        <Button type="submit" className="w-full cursor-pointer" ref={submitRefbtn}>
           {authState}
         </Button>
         <div
