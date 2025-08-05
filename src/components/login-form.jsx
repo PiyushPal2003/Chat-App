@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState, useRef } from "react";
+import toast, { Toaster } from 'react-hot-toast';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import axios from "axios";
 
@@ -16,24 +17,8 @@ export function LoginForm({
   const [authType, setAuthType] = useState('Login');
   const submitRefbtn = useRef(null);
 
-  const googleSignUp = (res)=>{
-    console.log('Google Sign Up:', res);
-      axios.post('http://localhost:5000/api/auth/googleregister', {googleAuthToken: res}, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true
-      }
-      ).then((response) => {
-        console.log('Response:', response.data);
-      }).catch((error) => {
-        submitRefbtn.current.disabled = false;
-        console.error('Error:', error);
-        alert("Error creating user: " + error.response.data.error);
-      });
-  }
-
   function changeAuthState() {
+    submitRefbtn.current.disabled = false;
     setAuthState((prev)=> prev === 'Login' ? 'Sign up' : 'Login');
     setAuthType(authState === 'Login' ? 'Sign up' : 'Login');
   }
@@ -54,75 +39,282 @@ export function LoginForm({
     }
   }
 
-  // function googleBtnClick() {
-  //   submitRefbtn.current.disabled = true;
 
-  //   const response = useGoogleLogin({
-  //       onSuccess: (response) => {
-  //         console.log('Google Auth Success:', response);
+  //Register Handlers
+  function registerFormSubmit(event) {
+    event.preventDefault();
+    submitRefbtn.current.disabled = true;
+    
+    const formData = new FormData(event.target);
+    const profilePhoto = formData.get('profilePhoto');
 
-  //           axios.post('http://localhost:5000/api/auth/googleregister', data, {
-  //             headers: {
-  //               'Content-Type': 'multipart/form-data',
-  //             },
-  //           }
-  //           ).then((response) => {
-  //             console.log('Response:', response.data);
-  //           }).catch((error) => {
-  //             submitRefbtn.current.disabled = false;
-  //             console.error('Error:', error);
-  //             alert("Error creating user: " + error.response.data.error);
-  //           });
-  //       },
-  //       onError: (error) => console.log('Login Failed:', error)
-  //   });
-  // }
+    const isDummyPhoto = profilePhoto && profilePhoto.name === "user_img.jpg";
 
-function handleFormSubmit(event) {
-  event.preventDefault();
-  submitRefbtn.current.disabled = true;
-  
-  const formData = new FormData(event.target);
-  const profilePhoto = formData.get('profilePhoto');
+    const data = {
+      email: formData.get('email'),
+      password: formData.get('password'),
+      type: authType,
+    };
 
-  const isDummyPhoto = profilePhoto && profilePhoto.name === "user_img.jpg";
+    //if sign up, these name and profile photo will be added to payload
+    if (authType === 'Sign up') {
+      data.name = formData.get('name');
+    }
+    if (!isDummyPhoto && profilePhoto && profilePhoto.name) {
+      data.profilePhoto = profilePhoto;
+    }
 
-  const data = {
-    email: formData.get('email'),
-    password: formData.get('password'),
-    type: authType,
-  };
+    axios.post( 'http://localhost:5000/api/auth/register' , data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      withCredentials: true
+    })
+    .then((response) => {
+      console.log('Successfully Created User -- Response:', response.data);
 
-  //if sign up, these name and profile photo will be added to payload
-  if (authType === 'Sign up') {
-    data.name = formData.get('name');
+        if(response.status == 200){
+          toast.success(
+            <div>
+              <p className="font-bold">Thankyou for Registering</p>
+              <p>Welcome to</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+
+        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
+
+    })
+    .catch((error) => {
+        if(error.response.status == 400){
+          toast.error(
+            <div>
+              <p className="font-bold">Unexpected Error!</p>
+              <p>Please try again after some time.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+        else if(error.response.status == 500){
+          toast.error(
+            <div>
+              <p className="font-bold">Server Error!</p>
+              <p>Please try again after some time.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+
+      submitRefbtn.current.disabled = false;
+      console.error('Error Creating User -- Error:', error);
+      // alert("Error creating user: " + error.response.data.error);
+    });
   }
-  if (!isDummyPhoto && profilePhoto && profilePhoto.name) {
-    data.profilePhoto = profilePhoto;
+
+  const googleSignUp = (res)=>{
+    submitRefbtn.current.disabled = true;
+    console.log('Google Sign Up:', res);
+
+      axios.post('http://localhost:5000/api/auth/googleregister', {googleAuthToken: res}, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
+      }
+      ).then((response) => {
+        console.log('Successfully created user with google signup -- Response:', response.data);
+
+        if(response.status == 200){
+          toast.success(
+            <div>
+              <p className="font-bold">Thankyou for Registering</p>
+              <p>Welcome to</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+
+        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
+
+      }).catch((error) => {
+
+        if(error.response.status == 400){
+          toast.error(
+            <div>
+              <p className="font-bold">Unexpected Error!</p>
+              <p>Please try again after some time.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+        else if(error.response.status == 500){
+          toast.error(
+            <div>
+              <p className="font-bold">Server Error!</p>
+              <p>Please try again after some time.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+
+        submitRefbtn.current.disabled = false;
+        console.error('Error Creating User with Google SignUp -- Error:', error);
+        alert("Error creating user: " + error.response.data.error);
+      });
   }
 
-  const url = authType === 'Login' ? 'http://localhost:5000/api/auth/login' : 'http://localhost:5000/api/auth/register';
 
-  axios.post( url , data, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-    withCredentials: true
+  const googleSignIn = (res)=>{
+    submitRefbtn.current.disabled = true;
+    console.log('Google Sign In:', res);
+
+      axios.post('http://localhost:5000/api/auth/googlelogin', {googleAuthToken: res}, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
+      }
+      ).then((response) => {
+        console.log('Successfully Logged in user with google signin -- Response:', response.data);
+
+        if(response.status == 200){
+          toast.success(
+            <div>
+              <p className="font-bold">Login Successfull</p>
+              <p>Welcome back!</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+
+        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
+
+      }).catch((error) => {
+
+        if(error.response.status == 400){
+          toast.error(
+            <div>
+              <p className="font-bold">User not Found!</p>
+              <p>Please SignUp.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+        else if(error.response.status == 500){
+          toast.error(
+            <div>
+              <p className="font-bold">Server Error!</p>
+              <p>Please try again after some time.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+
+        submitRefbtn.current.disabled = false;
+        console.error('Error logging in User with Google SignIn -- Error:', error);
+        // alert("Error logging in user: " + error.response.data.error);
+      });
   }
-  ).then((response) => {
-    console.log('Response:', response.data);
-  }).catch((error) => {
-    submitRefbtn.current.disabled = false;
-    console.error('Error:', error);
-    alert("Error creating user: " + error.response.data.error);
-  });
-}
 
+
+  //Login Handlers
+  function loginFormSubmit(e){
+    e.preventDefault();
+    submitRefbtn.current.disabled = true;
+
+    const data = {
+      email: e.target.email.value,
+      password: e.target.password.value
+    }
+
+    axios.post('http://localhost:5000/api/auth/login', data, {
+      headers:{
+        "Content-Type": 'application/JSON'
+      },
+      withCredentials: true
+    })
+    .then((response)=>{
+      console.log("Login Successfull", response);
+
+        if(response.status == 200){
+          toast.success(
+            <div>
+              <p className="font-bold">Login Successfull</p>
+              <p>Welcome back!!</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+        
+        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
+
+    })
+    .catch((error)=>{
+      if(error.response.status == 400 || error.response.status == 401){
+        toast.error(
+          <div>
+            <p className="font-bold text-center">User Not Found!</p>
+            <p className="text-center">Please Signup.</p>
+          </div>,
+          {
+            duration: 3000,
+            position: 'top-center',
+          }
+        );
+      }
+      else if(error.response.status == 500){
+        toast.error(
+          <div>
+            <p className="font-bold text-center">Server Error!</p>
+            <p>Please try again after some time.</p>
+          </div>,
+          {
+            duration: 3000,
+            position: 'top-center',
+          }
+        );
+      }
+
+      submitRefbtn.current.disabled = false;
+      console.error('Error Logging in User -- Error:', error);
+    })
+  }
 
   return (
     <>
   
-    <form id="authForm" onSubmit={handleFormSubmit} className={cn(`flex flex-col ${authState === 'Login' ? 'gap-6' : 'gap-3'}`, className)} {...props}>
+    <form id="authForm" onSubmit={authState=='Login' ? loginFormSubmit : registerFormSubmit} className={cn(`flex flex-col ${authState === 'Login' ? 'gap-6' : 'gap-3'}`, className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">{authState == 'Login' ? 'Login to your account' : 'Create your account'}</h1>
         <p className="text-muted-foreground text-sm text-balance">
@@ -210,7 +402,7 @@ function handleFormSubmit(event) {
           :
           <GoogleLogin text="signup_with" onSuccess={async(res)=>{
             console.log(res)
-            googleSignUp(res.credential);
+            googleSignIn(res.credential);
             }}
             onError={(err)=>console.log(err)}
           />
