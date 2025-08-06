@@ -183,68 +183,7 @@ export function LoginForm({
   }
 
 
-  const googleSignIn = (res)=>{
-    submitRefbtn.current.disabled = true;
-    console.log('Google Sign In:', res);
-
-      axios.post('http://localhost:5000/api/auth/googlelogin', {googleAuthToken: res}, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true
-      }
-      ).then((response) => {
-        console.log('Successfully Logged in user with google signin -- Response:', response.data);
-
-        if(response.status == 200){
-          toast.success(
-            <div>
-              <p className="font-bold">Login Successfull</p>
-              <p>Welcome back!</p>
-            </div>,
-            {
-              duration: 2200,
-              position: 'top-center',
-            }
-          );
-        }
-
-        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
-
-      }).catch((error) => {
-
-        if(error.response.status == 400){
-          toast.error(
-            <div>
-              <p className="font-bold">User not Found!</p>
-              <p>Please SignUp.</p>
-            </div>,
-            {
-              duration: 2200,
-              position: 'top-center',
-            }
-          );
-        }
-        else if(error.response.status == 500){
-          toast.error(
-            <div>
-              <p className="font-bold">Server Error!</p>
-              <p>Please try again after some time.</p>
-            </div>,
-            {
-              duration: 2200,
-              position: 'top-center',
-            }
-          );
-        }
-
-        submitRefbtn.current.disabled = false;
-        console.error('Error logging in User with Google SignIn -- Error:', error);
-        // alert("Error logging in user: " + error.response.data.error);
-      });
-  }
-
-
+  
   //Login Handlers
   function loginFormSubmit(e){
     e.preventDefault();
@@ -309,6 +248,67 @@ export function LoginForm({
       submitRefbtn.current.disabled = false;
       console.error('Error Logging in User -- Error:', error);
     })
+  }
+
+  const googleSignIn = (res)=>{
+    submitRefbtn.current.disabled = true;
+    console.log('Google Sign In:', res);
+
+      axios.post('http://localhost:5000/api/auth/googlelogin', {googleAuthToken: res}, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
+      }
+      ).then((response) => {
+        console.log('Successfully Logged in user with google signin -- Response:', response.data);
+
+        if(response.status == 200){
+          toast.success(
+            <div>
+              <p className="font-bold">Login Successfull</p>
+              <p>Welcome back!</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+
+        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
+
+      }).catch((error) => {
+
+        if(error.response.status == 400){
+          toast.error(
+            <div>
+              <p className="font-bold">User not Found!</p>
+              <p>Please SignUp.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+        else if(error.response.status == 500){
+          toast.error(
+            <div>
+              <p className="font-bold">Server Error!</p>
+              <p>Please try again after some time.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+
+        submitRefbtn.current.disabled = false;
+        console.error('Error logging in User with Google SignIn -- Error:', error);
+        // alert("Error logging in user: " + error.response.data.error);
+      });
   }
 
   return (
