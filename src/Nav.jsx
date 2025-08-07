@@ -1,6 +1,7 @@
 import ProtectedRoute from './component/ProtectRoute/ProtectedRoute'
-import AuthPage from './component/UserAuth/AuthPage'
 import {BrowserRouter as Router, Routes, Route} from 'react-router-dom'
+import AuthPage from './component/UserAuth/AuthPage'
+import Home from './component/Home/Home'
 
 function App() {
 
@@ -9,10 +10,10 @@ function App() {
       {/* <LoginPage /> */}
       <Router>
         <Routes>
-          <Route path="/" element={<AuthPage />} />
+          <Route path="/auth" element={<AuthPage />} />
 
           <Route element={<ProtectedRoute />} >
-            
+            <Route path="/" element={<Home />} />
           </Route>
 
         </Routes>

@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState, useRef } from "react";
+import {useDispatch} from "react-redux";
 import toast, { Toaster } from 'react-hot-toast';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
+import { login } from "../Redux/Reducers/authSlice";
+import {useNavigate} from "react-router-dom";
 import axios from "axios";
 
 export function LoginForm({
@@ -16,6 +19,8 @@ export function LoginForm({
   const [passVisible, setPassVisible] = useState(false);
   const [authType, setAuthType] = useState('Login');
   const submitRefbtn = useRef(null);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   function changeAuthState() {
     submitRefbtn.current.disabled = false;
@@ -72,6 +77,8 @@ export function LoginForm({
     })
     .then((response) => {
       console.log('Successfully Created User -- Response:', response.data);
+      dispatch(login(response.data.user));
+      navigate('/');
 
         if(response.status == 200){
           toast.success(
@@ -86,7 +93,7 @@ export function LoginForm({
           );
         }
 
-        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
+        localStorage.setItem('chatAccessToken', JSON.stringify(response.data.accessToken));
 
     })
     .catch((error) => {
@@ -133,6 +140,8 @@ export function LoginForm({
       }
       ).then((response) => {
         console.log('Successfully created user with google signup -- Response:', response.data);
+        dispatch(login(response.data.user));
+        navigate('/');
 
         if(response.status == 200){
           toast.success(
@@ -202,6 +211,8 @@ export function LoginForm({
     })
     .then((response)=>{
       console.log("Login Successfull", response);
+      dispatch(login(response.data.user));
+      navigate('/');
 
         if(response.status == 200){
           toast.success(
@@ -262,6 +273,8 @@ export function LoginForm({
       }
       ).then((response) => {
         console.log('Successfully Logged in user with google signin -- Response:', response.data);
+        dispatch(login(response.data.user));
+        navigate('/');
 
         if(response.status == 200){
           toast.success(
