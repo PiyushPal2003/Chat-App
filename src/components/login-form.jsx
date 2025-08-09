@@ -76,9 +76,7 @@ export function LoginForm({
       withCredentials: true
     })
     .then((response) => {
-      console.log('Successfully Created User -- Response:', response.data);
-      dispatch(login(response.data.user));
-      navigate('/');
+      console.log('Successfully Created User -- Response:', response);
 
         if(response.status == 200){
           toast.success(
@@ -91,12 +89,20 @@ export function LoginForm({
               position: 'top-center',
             }
           );
-        }
 
-        localStorage.setItem('chatAccessToken', JSON.stringify(response.data.accessToken));
+          dispatch(login(response.data.user));
+          localStorage.setItem('chatAccessToken', JSON.stringify(response.data.accessToken));
+          navigate('/');
+        }
+        else if(response.status == 201){
+          toast('You\'ve already registered', {
+            icon: '⚠️',
+          });
+        }
 
     })
     .catch((error) => {
+      console.log('Error Creating User -- Error:', error);
         if(error.response.status == 400){
           toast.error(
             <div>
@@ -140,8 +146,6 @@ export function LoginForm({
       }
       ).then((response) => {
         console.log('Successfully created user with google signup -- Response:', response.data);
-        dispatch(login(response.data.user));
-        navigate('/');
 
         if(response.status == 200){
           toast.success(
@@ -154,12 +158,19 @@ export function LoginForm({
               position: 'top-center',
             }
           );
+
+          dispatch(login(response.data.user));
+          localStorage.setItem('chatAccessToken', JSON.stringify(response.data.accessToken));
+          navigate('/');
+        }
+        else if(response.status == 201){
+          toast('You\'ve already registered', {
+            icon: '⚠️',
+          });
         }
 
-        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
-
       }).catch((error) => {
-
+        console.log('Error Creating User -- Error:', error);
         if(error.response.status == 400){
           toast.error(
             <div>
@@ -211,8 +222,6 @@ export function LoginForm({
     })
     .then((response)=>{
       console.log("Login Successfull", response);
-      dispatch(login(response.data.user));
-      navigate('/');
 
         if(response.status == 200){
           toast.success(
@@ -225,12 +234,20 @@ export function LoginForm({
               position: 'top-center',
             }
           );
+
+          dispatch(login(response.data.user));
+          localStorage.setItem('chatAccessToken', JSON.stringify(response.data.token));
+          navigate('/');
         }
-        
-        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
+        else if(response.status == 201){
+          toast('Use other login method', {
+            icon: '⚠️',
+          });
+        }
 
     })
     .catch((error)=>{
+      console.log('Error Creating User -- Error:', error);
       if(error.response.status == 400 || error.response.status == 401){
         toast.error(
           <div>
@@ -273,8 +290,6 @@ export function LoginForm({
       }
       ).then((response) => {
         console.log('Successfully Logged in user with google signin -- Response:', response.data);
-        dispatch(login(response.data.user));
-        navigate('/');
 
         if(response.status == 200){
           toast.success(
@@ -287,12 +302,19 @@ export function LoginForm({
               position: 'top-center',
             }
           );
+
+          dispatch(login(response.data.user));
+          localStorage.setItem('chatAccessToken', JSON.stringify(response.data.token));
+          navigate('/');
+        }
+        else if(response.status == 201){
+          toast('Use other login method', {
+            icon: '⚠️',
+          });
         }
 
-        localStorage.setItem('chatAccessToken', JSON.stringify(response.accessToken));
-
       }).catch((error) => {
-
+        console.log('Error Logging in User with Google SignIn -- Error:', error);
         if(error.response.status == 400){
           toast.error(
             <div>
@@ -365,7 +387,7 @@ export function LoginForm({
           </div>
 
           <div className="flex items-between border shadow-xs" style={{ border: '1.2px solid #e5e5e5', borderRadius: '0.6rem' }}>
-            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="password" type={passVisible ? "text" : "password"} pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,8}$" title="Must contain Uppercase, Lowercase and Numbers, upto 8 characters" name="password" required />
+            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="password" type={passVisible ? "text" : "password"} pattern={authType == 'Login' ? "^.{0,8}$" : "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,8}$"} title="Must contain Uppercase, Lowercase and Numbers, upto 8 characters" name="password" required />
 
             {
               passVisible ? (
@@ -408,14 +430,14 @@ export function LoginForm({
         {authState == 'Login' ? 
           <GoogleLogin onSuccess={async(res)=>{
             console.log(res)
-            googleSignUp(res.credential);
+            googleSignIn(res.credential);
             }}
             onError={(err)=>console.log(err)}
           />
           :
           <GoogleLogin text="signup_with" onSuccess={async(res)=>{
             console.log(res)
-            googleSignIn(res.credential);
+            googleSignUp(res.credential);
             }}
             onError={(err)=>console.log(err)}
           />

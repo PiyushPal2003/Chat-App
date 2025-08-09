@@ -1,26 +1,36 @@
-import React from 'react'
-import {Outlet} from 'react-router-dom';
-import {jwtDecode} from "jwt-decode";
-import { Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from "../../Redux/Reducers/authSlice";
 
 function ProtectedRoute() {
-  const [valid, setValid] = React.useState(false);
-  const token = localStorage.getItem("chatAccessToken");
-  if(token){
-    try {
-      const decoded = jwt_decode(token);
-      let valid = decoded.exp * 1000 > Date.now();
-      setValid(valid);
-      console.log("access token");
-    } catch (e) {
+  const [valid, setValid] = useState(null);
+  const location = useLocation();
+  const user = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const token = localStorage.getItem("chatAccessToken");
+    if (token && user.login) {
+      try {
+        const decoded = jwtDecode(token);
+        const isValid = decoded.exp * 1000 > Date.now();
+        setValid(isValid);
+      } catch (e) {
+        dispatch(logout());
+        setValid(false);
+      }
+    } else {
+      console.log("redirecting to auth page");
+      dispatch(logout());
       setValid(false);
     }
-  }
-  else{
-    console.log("no access token");
-  }
+  }, [location]); // Re-run check on every route change
+
+  if (valid === null) return null; // or a loading spinner
 
   return valid ? <Outlet /> : <Navigate to="/auth" />;
 }
 
-export default ProtectedRoute
+export default ProtectedRoute;
