@@ -12,7 +12,7 @@ function ProtectedRoute() {
 
   useEffect(() => {
     const token = localStorage.getItem("chatAccessToken");
-    if (token && user.login) {
+    if (token) {
       try {
         const decoded = jwtDecode(token);
         const isValid = decoded.exp * 1000 > Date.now();
