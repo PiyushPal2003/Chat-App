@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from "../../Redux/Reducers/authSlice";
+import { login, logout } from "../../Redux/Reducers/authSlice";
 
 function ProtectedRoute() {
   const [valid, setValid] = useState(null);
@@ -17,6 +17,7 @@ function ProtectedRoute() {
         const decoded = jwtDecode(token);
         const isValid = decoded.exp * 1000 > Date.now();
         setValid(isValid);
+        dispatch(login(decoded));
       } catch (e) {
         dispatch(logout());
         setValid(false);

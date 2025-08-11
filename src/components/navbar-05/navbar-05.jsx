@@ -10,8 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {useSelector} from "react-redux";
 
 const Navbar05Page = () => {
+  const user = useSelector((state) => state.auth);
+  console.log(user);
+
   return (
     <div className="min-h-screen bg-muted">
       <nav
@@ -32,10 +36,10 @@ const Navbar05Page = () => {
 
             <DropdownMenu className="w-full h-full">
               <DropdownMenuTrigger className="w-full h-full">
-                <img src="https://lh3.googleusercontent.com/a/ACg8ocJ_wrw-78lFMqpL1V0jOPlZb-Jo8MrKbr_bdNj0vSRAHrNrlg=s96-c?sz=200" className="rounded-full object-cover h-3/5"/>
+                <img src={`${user.profilePhoto.includes('googleusercontent')? './assets/user_img.jpg': user.profilePhoto}`} className="rounded-full object-cover h-3/5"/>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel>Hi, Piyush</DropdownMenuLabel>
+                <DropdownMenuLabel>Hi, {user.name.split(' ')[0]}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>Setting</DropdownMenuItem>

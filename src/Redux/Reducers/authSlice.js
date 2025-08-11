@@ -14,7 +14,7 @@ const authSlice = createSlice({
         login:(state, action)=>{
             state.name = action.payload.name;
             state.email = action.payload.email;
-            state.profilePhoto = action.payload.profilePhoto;
+            state.profilePhoto = action.payload.profilePhoto ? action.payload.profilePhoto : action.payload.photo;
             state.login = true;
         },
         logout:(state, action)=>{
