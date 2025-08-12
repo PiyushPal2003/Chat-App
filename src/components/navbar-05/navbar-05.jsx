@@ -17,7 +17,7 @@ const Navbar05Page = () => {
   console.log(user);
 
   return (
-    <div className="min-h-screen bg-muted">
+
       <nav
         className="inset-x-4 h-16 bg-background border dark:border-slate-700/70 mx-auto drop-shadow-lg" style={{borderRadius: "0 0 1.5rem 1.5rem"}}>
         <div className="h-full flex items-center justify-between mx-auto px-4">
@@ -36,7 +36,7 @@ const Navbar05Page = () => {
 
             <DropdownMenu className="w-full h-full">
               <DropdownMenuTrigger className="w-full h-full">
-                <img src={`${user.profilePhoto.includes('googleusercontent')? './assets/user_img.jpg': user.profilePhoto}`} className="rounded-full object-cover h-3/5"/>
+                <img src={`${user.profilePhoto.includes('googleusercontent') || user.profilePhoto == 'NA' ? './assets/user_img.jpg': user.profilePhoto}`} className="rounded-full object-cover h-3/5"/>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel>Hi, {user.name.split(' ')[0]}</DropdownMenuLabel>
@@ -49,7 +49,7 @@ const Navbar05Page = () => {
           </div>
         </div>
       </nav>
-    </div>
+
   );
 };
 

@@ -23,9 +23,19 @@ function ProtectedRoute() {
         setValid(false);
       }
     } else {
-      console.log("redirecting to auth page");
-      dispatch(logout());
-      setValid(false);
+
+      axios.get('/api/auth/refresh', { withCredentials: true })
+      .then((response) => {
+        console.log('Token refreshed:', response.data);
+      })
+      .catch((error) => {
+        console.log("redirecting to auth page");
+        dispatch(logout());
+        setValid(false);
+      });
+      // console.log("redirecting to auth page");
+      // dispatch(logout());
+      // setValid(false);
     }
   }, [location]); // Re-run check on every route change
 
