@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { useSelector, useDispatch } from 'react-redux';
@@ -16,26 +17,44 @@ function ProtectedRoute() {
       try {
         const decoded = jwtDecode(token);
         const isValid = decoded.exp * 1000 > Date.now();
-        setValid(isValid);
-        dispatch(login(decoded));
+
+        if (!isValid) {
+          console.log("invalid token trying refresh");
+
+          axios
+            .get("http://localhost:5000/api/auth/refresh", {
+              withCredentials: true,
+            })
+            .then((response) => {
+              console.log("Token refreshed:", response.data);
+              setValid(true);
+              localStorage.setItem(
+                "chatAccessToken",
+                JSON.stringify(response.data.accessToken)
+              );
+              dispatch(login(response.data.user));
+              return;
+            })
+            .catch((error) => {
+              console.log("refresh failed redirecting to auth page", error);
+              dispatch(logout());
+              setValid(false);
+              return;
+            });
+        } else {
+          console.log("valid access token");
+          setValid(isValid);
+          dispatch(login(decoded));
+        }
       } catch (e) {
+        console.log("Unknown error or token invalid", e);
         dispatch(logout());
         setValid(false);
       }
     } else {
-
-      axios.get('/api/auth/refresh', { withCredentials: true })
-      .then((response) => {
-        console.log('Token refreshed:', response.data);
-      })
-      .catch((error) => {
-        console.log("redirecting to auth page");
-        dispatch(logout());
-        setValid(false);
-      });
-      // console.log("redirecting to auth page");
-      // dispatch(logout());
-      // setValid(false);
+      console.log("no token redirecting to auth page");
+      dispatch(logout());
+      setValid(false);
     }
   }, [location]); // Re-run check on every route change
 

@@ -2,8 +2,32 @@ import React from 'react'
 
 export default function UserChat() {
   return (
-    <div>
-      
+    <div className='w-full h-full flex flex-col border justify-between'>
+      {/* head */}
+      <div className='w-full h-16 border flex flex-row items-center'>
+        <img src='./assets/user_img.jpg' className='rounded-full h-4/5'/>
+        <div>
+          <h1 className='font-medium text-lg ml-2'>My Friend</h1>
+          <h1 className='text-sm ml-2'>Online</h1>
+        </div>
+
+      </div>
+        
+
+
+
+      {/* foot */}
+      <div className='w-full h-16'>
+
+        <div className='rounded-full p-4 border flex flex-row items-center'>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+          </svg>
+          <input type="text" placeholder='Type a message...' className='rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent' />
+        </div>
+
+      </div>
+
     </div>
   )
 }

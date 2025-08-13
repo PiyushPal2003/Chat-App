@@ -5,17 +5,17 @@ import UserChat from '../Chats/UserChat'
 
 export default function Home() {
   return (
-    <div>
+    <div className='w-full h-full flex flex-col'>
       <Navbar/>
 
       {/* desktop */}
-      <div className='hidden md:grid grid-cols-[300px_1fr]'>
+      <div className='flex-1 hidden md:grid grid-cols-[3fr_7fr]'>
         <Chats/>
         <UserChat/>
       </div>
 
       {/* mobile */}
-      <div className='md:hidden grid grid-cols-[1fr_3fr]'>
+      <div className='flex-1 md:hidden grid grid-cols-[1fr_3fr]'>
         <Chats/>
         <UserChat/>
       </div>
