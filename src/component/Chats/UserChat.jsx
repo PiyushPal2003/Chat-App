@@ -17,7 +17,7 @@ export default function UserChat() {
 
 
       {/* foot */}
-      <div className='w-full h-16'>
+      <div className='w-full'>
 
         <div className='rounded-full p-4 border flex flex-row items-center'>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
