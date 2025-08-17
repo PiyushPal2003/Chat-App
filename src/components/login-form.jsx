@@ -9,12 +9,14 @@ import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { login } from "../Redux/Reducers/authSlice";
 import {useNavigate} from "react-router-dom";
 import axios from "axios";
+import { getSocket } from "../component/Context/Socket";
 
 export function LoginForm({
   className,
   ...props
 }) {
 
+  const socket = getSocket()
   const [authState, setAuthState] = useState('Login');
   const [passVisible, setPassVisible] = useState(false);
   const [authType, setAuthType] = useState('Login');
@@ -89,6 +91,8 @@ export function LoginForm({
               position: 'top-center',
             }
           );
+
+          Socket.emit
 
           dispatch(login(response.data.user));
           localStorage.setItem('chatAccessToken', JSON.stringify(response.data.accessToken));
