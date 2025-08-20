@@ -92,8 +92,6 @@ export function LoginForm({
             }
           );
 
-          Socket.emit
-
           dispatch(login(response.data.user));
           localStorage.setItem('chatAccessToken', JSON.stringify(response.data.accessToken));
           navigate('/');
