@@ -21,10 +21,10 @@ export default function Socket({children}) {
     });
 
     socket.on("connect_error", (err) => {
-      toast('Unexpected Error, Try again later', {
-        icon: '⚠️',
-      });
-      console.log("Connection error:", err.message);
+      // toast('Unexpected Error, Try again later', {
+      //   icon: '⚠️',
+      // });
+      console.log("Connection error:", err);
     });
     
     return()=>{
