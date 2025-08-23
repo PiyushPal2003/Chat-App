@@ -1,6 +1,19 @@
 import React from 'react'
+import { useEffect } from 'react'
+import { useGetChatsQuery } from '../../Redux/apiRTK/api'
+import { useSelector } from 'react-redux';
 
 export default function Chats() {
+
+    const user = useSelector((state)=>state.auth);
+    if(user?.id){
+        const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user.id);
+    }
+
+    useEffect(()=>{
+        // useGetChatsQuery()
+    })
+
   return (
     <div>
         {

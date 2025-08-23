@@ -15,7 +15,15 @@ const api = createApi({
       providesTags: ["Users"],
     }),
 
-
+    createChat: builder.mutation({
+      query: (data) => ({
+        url: `/createchats`,
+        method: "POST",
+        credentials: "include",
+        body: data,
+      }),
+      invalidatesTags: ["Chats"],
+    }),
 
     getChats: builder.query({
       query: (id) => ({
@@ -39,4 +47,4 @@ const api = createApi({
 })
 
 export default api;
-export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation } = api;
+export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation, useCreateChatMutation} = api;

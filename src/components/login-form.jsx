@@ -389,7 +389,7 @@ export function LoginForm({
           </div>
 
           <div className="flex items-between border shadow-xs" style={{ border: '1.2px solid #e5e5e5', borderRadius: '0.6rem' }}>
-            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="password" type={passVisible ? "text" : "password"} pattern={authType == 'Login' ? "^.{0,8}$" : "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{1,8}$"} title="Must contain Uppercase, Lowercase and Numbers, upto 8 characters" name="password" required />
+            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="password" type={passVisible ? "text" : "password"} pattern={authType == "^.{0,8}$"} title="Must contain Uppercase, Lowercase and Numbers, upto 8 characters" name="password" required />
 
             {
               passVisible ? (
