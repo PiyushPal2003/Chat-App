@@ -6,7 +6,7 @@ import { getSocket } from '../Context/Socket'
 
 export default function Home() {
 
-  const socket = getSocket();
+  // const socket = getSocket();
 
 
   return (

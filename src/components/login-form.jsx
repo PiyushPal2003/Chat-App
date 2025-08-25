@@ -16,7 +16,7 @@ export function LoginForm({
   ...props
 }) {
 
-  const socket = getSocket()
+  // const socket = getSocket()
   const [authState, setAuthState] = useState('Login');
   const [passVisible, setPassVisible] = useState(false);
   const [authType, setAuthType] = useState('Login');

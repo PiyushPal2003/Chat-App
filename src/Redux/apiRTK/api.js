@@ -10,17 +10,25 @@ const api = createApi({
     getUser: builder.query({
       query: () => ({
         url: "/users",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
         credentials: "include",
       }),
       providesTags: ["Users"],
     }),
 
     createChat: builder.mutation({
-      query: (data) => ({
+      query: (id) => ({
         url: `/createchats`,
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        body: {id},
         credentials: "include",
-        body: data,
       }),
       invalidatesTags: ["Chats"],
     }),
@@ -28,6 +36,10 @@ const api = createApi({
     getChats: builder.query({
       query: (id) => ({
         url: `/chats/${id}`,
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
         credentials: "include",
       }),
       providesTags: ["Chats"],
@@ -37,8 +49,12 @@ const api = createApi({
       query: ({data, id}) => ({
         url: `/chats/${id}`,
         method: "POST",
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
         body: data,
+        credentials: "include",
       }),
       invalidatesTags: ["Chats"],
     }),
