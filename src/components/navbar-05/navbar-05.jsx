@@ -24,8 +24,10 @@ import { useEffect } from "react";
 import toast, { Toaster } from 'react-hot-toast';
 import {getSocket} from "../../component/Context/Socket"
 import { useGetUserQuery, useCreateChatMutation } from "../../Redux/apiRTK/api";
+import { useNavigate } from "react-router-dom";
 
 const Navbar05Page = () => {
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth);
   const {setCurrChat} = getSocket();
 
@@ -85,7 +87,13 @@ const Navbar05Page = () => {
       console.log("Fetched user:", userData);
     }
     if (userError) {
-      console.error("Error fetching user:", error);
+      console.error("Error fetching user:", userError);
+      if(userError?.status === 401){
+        if(localStorage.getItem("chatAccessToken")){
+          localStorage.removeItem("chatAccessToken");
+        }
+        navigate('/auth');
+      }
     }
   }, [userSuccess, userData, userError]);
 

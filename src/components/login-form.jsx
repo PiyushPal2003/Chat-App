@@ -16,7 +16,8 @@ export function LoginForm({
   ...props
 }) {
 
-  // const socket = getSocket()
+  const socket = getSocket();
+  console.log("Socket in LoginForm:", socket);
   const [authState, setAuthState] = useState('Login');
   const [passVisible, setPassVisible] = useState(false);
   const [authType, setAuthType] = useState('Login');
@@ -79,8 +80,9 @@ export function LoginForm({
     })
     .then((response) => {
       console.log('Successfully Created User -- Response:', response);
-
-        if(response.status == 200){
+      
+      if(response.status == 200){
+          // socket.emit('NEW_USER', response.data.user);
           toast.success(
             <div>
               <p className="font-bold">Thankyou for Registering</p>
@@ -150,6 +152,7 @@ export function LoginForm({
         console.log('Successfully created user with google signup -- Response:', response.data);
 
         if(response.status == 200){
+          // socket.emit('NEW_USER', response.data.user);
           toast.success(
             <div>
               <p className="font-bold">Thankyou for Registering</p>

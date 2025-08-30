@@ -22,10 +22,11 @@ export default function Socket({children}) {
     });
 
     socket.on("connect_error", (err) => {
-      // toast('Unexpected Error, Try again later', {
-      //   icon: '⚠️',
-      // });
       console.log("Connection error:", err);
+    });
+
+    socket.on("NEW_USER", (data) => {
+      console.log("New user joined:", data);
     });
     
     return()=>{
