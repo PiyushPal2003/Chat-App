@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import io from "socket.io-client";
-import {useNavigate} from "react-router-dom";
 import toast, { Toaster } from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import api from '../../Redux/apiRTK/api';
 
 
 const SocketContext = createContext();
@@ -11,6 +12,7 @@ export default function Socket({children}) {
   // const socket = useMemo(() =>{ 
   //   io('http://localhost:5000', { withCredentials: true })
   // },[] );
+  const dispatch = useDispatch();
   const [currChat, setCurrChat] = useState(null);
 
   const socket = useMemo(() => io('http://localhost:5000', { withCredentials: true }) ,[] );
@@ -27,6 +29,7 @@ export default function Socket({children}) {
 
     socket.on("NEW_USER", (data) => {
       console.log("New user joined:", data);
+      dispatch(api.util.invalidateTags(['Users']));
     });
     
     return()=>{

@@ -11,7 +11,9 @@ export default function Chats() {
     }
 
     useEffect(()=>{
-        // useGetChatsQuery()
+        if(isSuccess){
+            console.log("Chat data fetched successfully:", data);
+        }
     })
 
   return (

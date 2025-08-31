@@ -9,15 +9,12 @@ import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { login } from "../Redux/Reducers/authSlice";
 import {useNavigate} from "react-router-dom";
 import axios from "axios";
-import { getSocket } from "../component/Context/Socket";
 
 export function LoginForm({
   className,
   ...props
 }) {
 
-  const socket = getSocket();
-  console.log("Socket in LoginForm:", socket);
   const [authState, setAuthState] = useState('Login');
   const [passVisible, setPassVisible] = useState(false);
   const [authType, setAuthType] = useState('Login');
@@ -82,7 +79,6 @@ export function LoginForm({
       console.log('Successfully Created User -- Response:', response);
       
       if(response.status == 200){
-          // socket.emit('NEW_USER', response.data.user);
           toast.success(
             <div>
               <p className="font-bold">Thankyou for Registering</p>
@@ -152,7 +148,6 @@ export function LoginForm({
         console.log('Successfully created user with google signup -- Response:', response.data);
 
         if(response.status == 200){
-          // socket.emit('NEW_USER', response.data.user);
           toast.success(
             <div>
               <p className="font-bold">Thankyou for Registering</p>
