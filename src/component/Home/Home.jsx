@@ -14,16 +14,16 @@ export default function Home() {
       <Navbar/>
 
       {/* desktop */}
-      <div className='h-full flex-1 hidden md:grid grid-cols-[3fr_7fr]'>
+      {/* <div className='h-full flex-1 hidden md:grid grid-cols-[3fr_7fr]'> */}
         <Chats/>
-        <UserChat/>
-      </div>
+        {/* <UserChat/>
+      </div> */}
 
       {/* mobile */}
-      <div className='h-full flex-1 md:hidden grid grid-cols-[1fr_3fr]'>
+      {/* <div className='h-full flex-1 md:hidden grid grid-cols-[1fr_3fr]'>
         <Chats/>
         <UserChat/>
-      </div>
+      </div> */}
 
 
     </div>

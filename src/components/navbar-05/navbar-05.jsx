@@ -37,35 +37,35 @@ const Navbar05Page = () => {
   async function createUserChat(id){
     try{
       setCurrChat(id);
-      createChat(id).unwrap()
-      .then((res) => {
-        console.log("Chat created successfully:", res);
-        toast.success(
-          <div>
-            <p className="font-bold">Chat Created</p>
-          </div>,
-          {
-            duration: 2200,
-            position: 'top-center',
-          }
-        );
-      })
-      .catch((err) => {
-        // toast.error("Failed to create chat");
-        console.error(err);
-        if(err?.data?.message?.errorResponse?.code === 11000){
-          toast.error(
-            <div>
-              <p className="font-bold">Chat already exists!</p>
-              <p>Please check your chat list.</p>
-            </div>,
-            {
-              duration: 2200,
-              position: 'top-center',
-            }
-          );
-        }
-      });
+      // createChat(id).unwrap()
+      // .then((res) => {
+      //   console.log("Chat created successfully:", res);
+      //   toast.success(
+      //     <div>
+      //       <p className="font-bold">Chat Created</p>
+      //     </div>,
+      //     {
+      //       duration: 2200,
+      //       position: 'top-center',
+      //     }
+      //   );
+      // })
+      // .catch((err) => {
+      //   // toast.error("Failed to create chat");
+      //   console.error(err);
+      //   if(err?.data?.message?.errorResponse?.code === 11000){
+      //     toast.error(
+      //       <div>
+      //         <p className="font-bold">Chat already exists!</p>
+      //         <p>Please check your chat list.</p>
+      //       </div>,
+      //       {
+      //         duration: 2200,
+      //         position: 'top-center',
+      //       }
+      //     );
+      //   }
+      // });
     }
     catch(err){
       console.log(err);
