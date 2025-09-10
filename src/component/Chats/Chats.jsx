@@ -7,14 +7,15 @@ import UserChat from './UserChat';
 
 export default function Chats() {
 
-    const {currChat} = getSocket();
+    const {currChat, setCurrChat} = getSocket();
     console.log("Current Chat ID:", currChat);
     const user = useSelector((state)=>state.auth);
-    const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(currChat && currChat);
+    const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user.id);
 
     useEffect(()=>{
         if(isSuccess){
             console.log("Chat data fetched successfully:", data);
+            // setCurrChat(data?.chats?.find((ele)=>ele._id==currChat._id));
         }
         else if(error){
             console.error("Error fetching chat data:", error);
@@ -24,10 +25,10 @@ export default function Chats() {
   return (
     <>
     <div className='w-full h-screen flex flex-col'>
-        <div className='h-full flex-1 md:hidden grid grid-cols-[1fr_3fr]'>
+        <div className='h-full flex-1 grid grid-cols-[1fr_3fr]'>
                 {
                     data?.chats?.map((chat, index)=>(
-                        <div className='flex flex-row w-full h-[5rem] items-center mb-5 border rounded-full p-1' key={index} >
+                        <div className='flex flex-row w-full h-[5rem] items-center mb-5 border rounded-full p-1' key={index} onClick={()=>setCurrChat(chat._id)}>
                             <img src='./assets/user_img.jpg' className='rounded-full object-cover h-4/5'/>
                             <div className='flex flex-col ml-2'>
                                 <h1 className='font-medium text-lg'>
@@ -39,7 +40,7 @@ export default function Chats() {
                     ))
                 }
 
-            <UserChat/>
+            <UserChat currChat={currChat} />
         </div>
     </div>
     </>

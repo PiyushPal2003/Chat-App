@@ -1,8 +1,14 @@
 import React from 'react'
+import { useEffect } from 'react';
+import {getSocket} from "../Context/Socket";
 
-export default function UserChat() {
+export default function UserChat(props) {
 
-  
+  const {currChat} = getSocket();  
+
+  useEffect(()=>{
+
+  }, [props.currChat]);
 
   return (
     <div className='w-full h-full flex flex-col border justify-between'>
