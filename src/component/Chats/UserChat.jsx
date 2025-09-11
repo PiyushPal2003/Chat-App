@@ -1,14 +1,24 @@
 import React from 'react'
 import { useEffect } from 'react';
 import {getSocket} from "../Context/Socket";
+import {useFetchChatQuery} from "../../Redux/apiRTK/api"
 
 export default function UserChat(props) {
 
   const {currChat} = getSocket();  
+  console.log("Current Chat ID prop:", props.currChatId);
+  const id = props.currChatId;
+
+  const { data, error, isLoading, isSuccess, refetch } = useFetchChatQuery(id);
 
   useEffect(()=>{
-
-  }, [props.currChat]);
+    if(isSuccess){
+        console.log("Fetched chat details successfully:", data);
+    }
+    else if(error){
+        console.error("Error fetching chat details:", error);
+    }
+  }, [isSuccess, error]);
 
   return (
     <div className='w-full h-full flex flex-col border justify-between'>
@@ -16,7 +26,7 @@ export default function UserChat(props) {
       <div className='w-full h-16 border flex flex-row items-center'>
         <img src='./assets/user_img.jpg' className='rounded-full h-4/5'/>
         <div>
-          <h1 className='font-medium text-lg ml-2'>My Friend</h1>
+          <h1 className='font-medium text-lg ml-2'>My friend</h1>
           <h1 className='text-sm ml-2'>Online</h1>
         </div>
 

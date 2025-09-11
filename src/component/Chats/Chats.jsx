@@ -15,7 +15,7 @@ export default function Chats() {
     useEffect(()=>{
         if(isSuccess){
             console.log("Chat data fetched successfully:", data);
-            // setCurrChat(data?.chats?.find((ele)=>ele._id==currChat._id));
+            setCurrChat(data?.chats[0]?._id);
         }
         else if(error){
             console.error("Error fetching chat data:", error);
@@ -40,7 +40,7 @@ export default function Chats() {
                     ))
                 }
 
-            <UserChat currChat={currChat} />
+            <UserChat currChatId={currChat} />
         </div>
     </div>
     </>

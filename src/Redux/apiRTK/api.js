@@ -45,6 +45,17 @@ const api = createApi({
       providesTags: ["Chats"],
     }),
 
+    fetchChat: builder.query({
+      query: (id) => ({
+        url: `/fetchchat/${id}`,
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        credentials: "include",
+      }),
+    }),
+
     sendChat: builder.mutation({
       query: ({data, id}) => ({
         url: `/chats/${id}`,
@@ -63,4 +74,4 @@ const api = createApi({
 })
 
 export default api;
-export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation, useCreateChatMutation} = api;
+export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery} = api;

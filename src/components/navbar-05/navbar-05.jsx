@@ -39,7 +39,7 @@ const Navbar05Page = () => {
       createChat(id).unwrap()
       .then((res) => {
         console.log("Chat created successfully:", res);
-        setCurrChat(res.chat);
+        setCurrChat(res.chat._id);
         toast.success(
           <div>
             <p className="font-bold">Chat Created</p>
@@ -88,12 +88,12 @@ const Navbar05Page = () => {
     }
     if (userError) {
       console.error("Error fetching user:", userError);
-      if(userError?.status === 401){
+      // if(userError?.status === 401){
         if(localStorage.getItem("chatAccessToken")){
           localStorage.removeItem("chatAccessToken");
         }
         navigate('/auth');
-      }
+      // }
     }
   }, [userSuccess, userData, userError]);
 
