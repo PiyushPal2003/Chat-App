@@ -248,11 +248,23 @@ export function LoginForm({
     })
     .catch((error)=>{
       console.log('Error Creating User -- Error:', error);
-      if(error.response.status == 400 || error.response.status == 401){
+      if(error.response.status == 400){
         toast.error(
           <div>
             <p className="font-bold text-center">User Not Found!</p>
             <p className="text-center">Please Signup.</p>
+          </div>,
+          {
+            duration: 3000,
+            position: 'top-center',
+          }
+        );
+      }
+      else if(error.response.status == 401){
+        toast.error(
+          <div>
+            <p className="font-bold text-center">Invalid Credentails</p>
+            <p className="text-center">Please try again</p>
           </div>,
           {
             duration: 3000,

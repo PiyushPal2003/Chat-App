@@ -1,15 +1,18 @@
 import React from 'react'
 import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import {getSocket} from "../Context/Socket";
 import {useFetchChatQuery} from "../../Redux/apiRTK/api"
 
 export default function UserChat(props) {
 
+  const user = useSelector((state)=>state.auth);
   const {currChat} = getSocket();  
   console.log("Current Chat ID prop:", props.currChatId);
   const id = props.currChatId;
 
   const { data, error, isLoading, isSuccess, refetch } = useFetchChatQuery(id);
+  // data?.chat?.members?.filter(member => member._id !== user.id)[0]?.name;
 
   useEffect(()=>{
     if(isSuccess){
@@ -26,8 +29,18 @@ export default function UserChat(props) {
       <div className='w-full h-16 border flex flex-row items-center'>
         <img src='./assets/user_img.jpg' className='rounded-full h-4/5'/>
         <div>
-          <h1 className='font-medium text-lg ml-2'>My friend</h1>
-          <h1 className='text-sm ml-2'>Online</h1>
+          <h1 className='font-medium text-lg ml-2'>
+            {data?.chat?.members?.filter(member => member._id !== user.id)[0]?.name}
+          </h1>
+          <h1 className='text-sm ml-2'>
+            {user.onlineUsers[data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id] ? 
+            (
+              <span className="text-[0.7rem] text-green-500">🟢 Online</span>
+            ) : (
+              <span className="text-[0.7rem] text-red-500">🔴 Offline</span>
+            )
+            }
+          </h1>
         </div>
 
       </div>

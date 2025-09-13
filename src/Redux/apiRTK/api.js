@@ -7,6 +7,8 @@ const api = createApi({
 
   endpoints: (builder) => ({
 
+    // refreshToken: builder.mutation({
+
     getUser: builder.query({
       query: () => ({
         url: "/users",

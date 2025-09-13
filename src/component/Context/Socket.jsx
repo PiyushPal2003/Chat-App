@@ -3,6 +3,7 @@ import io from "socket.io-client";
 import toast, { Toaster } from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import api from '../../Redux/apiRTK/api';
+import { onlineUsersList } from '../../Redux/Reducers/authSlice';
 
 
 const SocketContext = createContext();
@@ -30,6 +31,16 @@ export default function Socket({children}) {
     socket.on("NEW_USER", (data) => {
       console.log("New user joined:", data);
       dispatch(api.util.invalidateTags(['Users']));
+    });
+
+    socket.on("USER_CONNECTED", (data) => {
+      console.log("User connected:", data);
+      dispatch(onlineUsersList(data));
+    });
+    
+    socket.on("USER_DISCONNECTED", (data) => {
+      console.log("User disconnected:", data);
+      dispatch(onlineUsersList(data));
     });
     
     return()=>{

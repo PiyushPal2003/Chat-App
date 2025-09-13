@@ -6,6 +6,7 @@ const initialState = {
     profilePhoto: "",
     id: "",
     login: false,
+    onlineUsers: {},
 }
 
 const authSlice = createSlice({
@@ -25,9 +26,12 @@ const authSlice = createSlice({
             state.profilePhoto = "";
             state.id = "";
             state.login = false;
+        },
+        onlineUsersList:(state, action)=>{
+            state.onlineUsers = action.payload;
         }
     }
 })
 
-export const { login, logout } = authSlice.actions;
+export const { login, logout, onlineUsersList } = authSlice.actions;
 export default authSlice.reducer;
