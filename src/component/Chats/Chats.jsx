@@ -10,7 +10,7 @@ export default function Chats() {
     const {currChat, setCurrChat} = getSocket();
     console.log("Current Chat ID:", currChat);
     const user = useSelector((state)=>state.auth);
-    const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user.id);
+    const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user?.id);
 
     useEffect(()=>{
         if(isSuccess){
