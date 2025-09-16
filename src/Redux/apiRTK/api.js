@@ -8,14 +8,16 @@ const fetchBaseQueryWithReAuth = async (args, api, extraOptions) => {
 
   if (result?.error?.status === 401 && result?.error?.data?.message === "Invalid or expired token") 
   {
-    const refreshResult = await baseQuery("/auth/refresh", api, extraOptions);
+    const refreshResult = await baseQuery({ url: "/auth/refresh" }, api, extraOptions);;
     if (refreshResult.data) {
       result = await baseQuery(args, api, extraOptions);
     } else {
-      console.log("refresh failed");
-      // api.dispatch(logout());
+      console.log("refresh failed", refreshResult.error);
+      api.dispatch(logout());
     }
   }
+
+  return result;
 }
 
 const api = createApi({

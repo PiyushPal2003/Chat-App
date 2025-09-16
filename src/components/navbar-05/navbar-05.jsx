@@ -87,7 +87,7 @@ const Navbar05Page = () => {
       console.log("Fetched user:", userData);
     }
     if (userError) {
-      console.error("Error fetching user:", userError);
+      console.log("Error fetching user:", userError);
       // if(userError?.status === 401){
         if(localStorage.getItem("chatAccessToken")){
           localStorage.removeItem("chatAccessToken");
