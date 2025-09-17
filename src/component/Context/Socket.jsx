@@ -14,7 +14,7 @@ export default function Socket({children}) {
   //   io('http://localhost:5000', { withCredentials: true })
   // },[] );
   const dispatch = useDispatch();
-  const [currChat, setCurrChat] = useState({});
+  const [currChat, setCurrChat] = useState();
 
   const socket = useMemo(() => io('http://localhost:5000', { withCredentials: true }) ,[] );
 

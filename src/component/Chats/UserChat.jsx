@@ -9,10 +9,10 @@ export default function UserChat(props) {
   const user = useSelector((state)=>state.auth);
   const {currChat} = getSocket();  
   console.log("Current Chat ID prop:", props.currChatId);
-  const id = props.currChatId;
+  // const id = props.currChatId;
+  // console.log("Fetching details for Chat ID:", id);
 
-  const { data, error, isLoading, isSuccess, refetch } = useFetchChatQuery(id);
-  // data?.chat?.members?.filter(member => member._id !== user.id)[0]?.name;
+  const { data, error, isLoading, isSuccess, refetch } = useFetchChatQuery(props?.currChatId, { skip: !props?.currChatId });
 
   useEffect(()=>{
     if(isSuccess){
