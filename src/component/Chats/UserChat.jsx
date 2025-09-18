@@ -47,6 +47,16 @@ export default function UserChat(props) {
         
 
 
+        {/* conversations */}
+        <div className='bg-gray-300 flex-1 p-4'>
+            <p className='p-2 bg-blue-400 w-fit rounded-full max-w-[45%]'>Hello Hello Hello Hello Hello Hello Hello Hello Hello</p>
+            <p className='p-2 bg-blue-400 w-fit rounded-full ml-auto max-w-[45%]'>Hi there Hi there Hi there Hi there Hi there</p>
+            
+            <p className='p-2 bg-blue-400 w-fit rounded-full max-w-[45%]'>{data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id}</p>
+            <p className='p-2 bg-blue-400 w-fit rounded-full ml-auto max-w-[45%]'>{user.id}</p>
+        </div>
+
+
 
       {/* foot */}
       <div className='w-full'>

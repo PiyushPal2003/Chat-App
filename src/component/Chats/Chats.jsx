@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { useEffect } from 'react'
 import { useGetChatsQuery } from '../../Redux/apiRTK/api'
 import { useSelector } from 'react-redux';
@@ -7,6 +7,7 @@ import UserChat from './UserChat';
 
 export default function Chats() {
 
+    const initialRef = useRef(true);
     const {currChat, setCurrChat} = getSocket();
     console.log("Current Chat ID:", currChat);
     const user = useSelector((state)=>state.auth);
@@ -33,7 +34,7 @@ export default function Chats() {
                     <div>
                     {
                         data?.chats?.map((chat, index)=>(
-                            <div className='flex flex-row w-full h-[5rem] items-center mb-5 border rounded-full p-1 cursor-pointer' key={index} onClick={()=>{setCurrChat(chat._id), console.log("Set current chat to:", chat._id)}}>
+                            <div className='flex flex-row w-full h-[5rem] items-center mb-5 border rounded-full p-1 cursor-pointer' key={index} onClick={()=>setCurrChat(chat._id)}>
                                 <img src='./assets/user_img.jpg' className='rounded-full object-cover h-4/5'/>
                                 <div className='flex flex-col ml-2'>
                                     <h1 className='font-medium text-lg'>
@@ -58,7 +59,10 @@ export default function Chats() {
     useEffect(()=>{
         if(isSuccess){
             console.log("Chat data fetched successfully:", data);
-            setCurrChat(data?.chats[0]?._id);
+            if(initialRef.current){
+                setCurrChat(data?.chats[0]?._id);
+                initialRef.current = false;
+            }
         }
         else if(error){
             console.error("Error fetching chat data:", error);
