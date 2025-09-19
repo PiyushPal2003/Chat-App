@@ -38,7 +38,7 @@ export default function Chats() {
                                 <img src='./assets/user_img.jpg' className='rounded-full object-cover h-4/5'/>
                                 <div className='flex flex-col ml-2'>
                                     <h1 className='font-medium text-lg'>
-                                        {chat?.members?.length<=2 ? chat?.members.find((f)=>f._id !== user.id)?.name : 'Group Chat'}
+                                        {chat?.members?.length<=2 ? chat?.members.find((f)=>f._id !== user.id)?.name : chat?.grpname}
                                     </h1>
                                     <h1>Hi bro how are you??</h1>
                                 </div>

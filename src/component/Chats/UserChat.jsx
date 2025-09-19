@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {getSocket} from "../Context/Socket";
 import {useFetchChatQuery} from "../../Redux/apiRTK/api"
+import axios from 'axios';
 
 export default function UserChat(props) {
 
@@ -13,6 +14,47 @@ export default function UserChat(props) {
   // console.log("Fetching details for Chat ID:", id);
 
   const { data, error, isLoading, isSuccess, refetch } = useFetchChatQuery(props?.currChatId, { skip: !props?.currChatId });
+
+
+  function sendChat(e){
+    // e.preventDefault();
+
+    if(e.key === 'Enter' || e.target.id === 'sendBtn'){
+      
+      let message;
+      if(e.key === 'Enter'){
+        message = e.target.value.trim();
+        e.target.value = "";
+      }
+      else if(e.target.id === 'sendBtn'){
+        message = e.target.previousElementSibling.value.trim();
+        e.target.previousElementSibling.value = "";
+      }
+
+    const payload = {
+      senderId: user.id,
+      receiverId: data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id,
+      message: message
+    }
+
+    axios.post(
+      `http://localhost:5000/api/sendchat/${props?.currChatId}`, payload, 
+      { 
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        withCredentials: true 
+      })
+    .then((res)=>{
+      console.log("Chat sent successfully:", res.data);
+    })
+    .catch((err)=>{
+      console.error("Error sending chat:", err);
+    });
+
+  }
+  }
 
   useEffect(()=>{
     if(isSuccess){
@@ -65,7 +107,8 @@ export default function UserChat(props) {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
             <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
           </svg>
-          <input type="text" placeholder='Type a message...' className='rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent' />
+          <input type="text" placeholder='Type a message...' className='rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent' onKeyDown={sendChat} />
+          <button id="sendBtn" className='bg-blue-500 text-white font-semibold px-4 py-2 rounded-full ml-2' onClick={sendChat}>Send</button>
         </div>
 
       </div>
