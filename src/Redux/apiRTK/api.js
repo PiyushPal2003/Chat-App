@@ -101,10 +101,10 @@ const api = createApi({
 
     sendChat: builder.mutation({
       query: ({data, id}) => ({
-        url: `/chats/${id}`,
+        url: `/sendchat/${id}`,
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          // "Content-Type": "multipart/form-data",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         body: data,

@@ -40,7 +40,7 @@ export default function Chats() {
                                     <h1 className='font-medium text-lg'>
                                         {chat?.members?.length<=2 ? chat?.members.find((f)=>f._id !== user.id)?.name : chat?.grpname}
                                     </h1>
-                                    <h1>Hi bro how are you??</h1>
+                                    <h1>{chat.lastMessage}</h1>
                                 </div>
                             </div>
                         ))

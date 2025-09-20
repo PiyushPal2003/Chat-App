@@ -42,6 +42,14 @@ export default function Socket({children}) {
       console.log("User disconnected:", data);
       dispatch(onlineUsersList(data));
     });
+
+
+    //new message received
+    socket.on("newMessage", (data) => {
+      console.log("New message received:", data);
+      // toast.success("New message received");
+      // dispatch(api.util.invalidateTags(['Chats']));
+    });
     
     return()=>{
       socket.disconnect();
