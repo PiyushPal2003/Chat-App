@@ -1,5 +1,4 @@
-import axios from "axios";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Logo } from "./logo";
 import { Search } from "lucide-react";
@@ -20,16 +19,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {useSelector} from "react-redux";
-import { useEffect } from "react";
 import toast, { Toaster } from 'react-hot-toast';
 import {getSocket} from "../../component/Context/Socket"
 import { useGetUserQuery, useCreateChatMutation } from "../../Redux/apiRTK/api";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar05Page = () => {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth);
   const {setCurrChat} = getSocket();
+  const [groupChat, setGroupChat] = useState(false);
+  const [step, setStep] = useState(0);
 
   const { data: userData, error: userError, isLoading: userLoading, isSuccess: userSuccess } = useGetUserQuery();
   const [createChat, { data: createUserData, error: createuserError, isLoading: createUserLoading, isSuccess: createUserSuccess }] = useCreateChatMutation();
@@ -130,7 +131,7 @@ const Navbar05Page = () => {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle className="text-left">Select users to chat with</DialogTitle>
+                    <DialogTitle className="text-left">Select user to chat with</DialogTitle>
                     <DialogDescription asChild>
                       <div>
                         {userLoading ?               
@@ -141,14 +142,28 @@ const Navbar05Page = () => {
                             </svg>
                         </div>
                         :
-                        userData?.Users?.map((ele, index)=>(
-                            <div className='flex flex-row h-[2.5rem] items-center my-2 p-1 cursor-pointer w-min whitespace-nowrap' key={index} onClick={()=>createUserChat(ele._id)}>
-                                <img src={`${ele.profilePhoto.includes('googleusercontent') || ele.profilePhoto == 'NA' ? './assets/user_img.jpg': ele.profilePhoto}`} className='rounded-full object-cover' style={{aspectRatio: '1', height: '95%'}}/>
+                        <>
+                          <div className='flex flex-row h-[2.5rem] items-center my-2 p-1 cursor-pointer w-min whitespace-nowrap' onClick={()=>setGroupChat(true)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
+                                  <path fill-rule="evenodd" d="M8.25 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z" clip-rule="evenodd" />
+                                  <path d="M5.082 14.254a8.287 8.287 0 0 0-1.308 5.135 9.687 9.687 0 0 1-1.764-.44l-.115-.04a.563.563 0 0 1-.373-.487l-.01-.121a3.75 3.75 0 0 1 3.57-4.047ZM20.226 19.389a8.287 8.287 0 0 0-1.308-5.135 3.75 3.75 0 0 1 3.57 4.047l-.01.121a.563.563 0 0 1-.373.486l-.115.04c-.567.2-1.156.349-1.764.441Z" />
+                                </svg>
+
                                 <div className='flex flex-col ml-2'>
-                                    <p className='font-medium text-lg'>{ele.name}</p>
+                                    <p className='font-medium text-lg'>New Group</p>
                                 </div>
-                            </div>
-                        ))}
+                          </div>
+                          {userData?.Users?.map((ele, index)=>(
+                              <div className='flex flex-row h-[2.5rem] items-center my-2 p-1 cursor-pointer w-min whitespace-nowrap' key={index} onClick={()=>createUserChat(ele._id)}>
+                                  <img src={`${ele.profilePhoto.includes('googleusercontent') || ele.profilePhoto == 'NA' ? './assets/user_img.jpg': ele.profilePhoto}`} className='rounded-full object-cover' style={{aspectRatio: '1', height: '95%'}}/>
+                                  <div className='flex flex-col ml-2'>
+                                      <p className='font-medium text-lg'>{ele.name}</p>
+                                  </div>
+                                  {groupChat && <input type="checkbox" className="ml-auto"/>}
+                              </div>
+                          ))}
+                        </>
+                      }
                       </div>
                     </DialogDescription>
                   </DialogHeader>

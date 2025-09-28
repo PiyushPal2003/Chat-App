@@ -24,7 +24,7 @@ const api = createApi({
   reducerPath: "api",
   // baseQuery: fetchBaseQuery({ baseUrl: `http://localhost:5000/api`, credentials: "include" }),
   baseQuery: fetchBaseQueryWithReAuth,
-  tagTypes: ["Users", "Chats"],
+  tagTypes: ["Users", "Chats", "UserMessages"],
 
   endpoints: (builder) => ({
 
@@ -99,6 +99,18 @@ const api = createApi({
       }),
     }),
 
+    fetchMessages: builder.query({
+      query: (id) => ({
+        url: `/fetchmessages/${id}`,
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        credentials: "include",
+      }),
+      providesTags: ["UserMessages"],
+    }),
+
     sendChat: builder.mutation({
       query: ({data, id}) => ({
         url: `/sendchat/${id}`,
@@ -110,11 +122,11 @@ const api = createApi({
         body: data,
         credentials: "include",
       }),
-      invalidatesTags: ["Chats"],
+      invalidatesTags: ["UserMessages", "Chats"],
     }),
   
   }),
 })
 
 export default api;
-export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation} = api;
+export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useFetchMessagesQuery} = api;

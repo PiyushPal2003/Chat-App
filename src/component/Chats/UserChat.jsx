@@ -2,10 +2,11 @@ import React from 'react'
 import { useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import {getSocket} from "../Context/Socket";
-import {useFetchChatQuery, useSendChatMutation} from "../../Redux/apiRTK/api"
+import {useFetchChatQuery, useSendChatMutation, useFetchMessagesQuery} from "../../Redux/apiRTK/api"
 
 export default function UserChat(props) {
 
+  const page = useRef(null);
   const [fileUpload, setFileUpload] = useState([]);
   const inputRef = useRef();
   const user = useSelector((state)=>state.auth);
@@ -14,10 +15,15 @@ export default function UserChat(props) {
   // const id = props.currChatId;
   // console.log("Fetching details for Chat ID:", id);
 
-  const { data, error, isLoading, isSuccess, refetch } = useFetchChatQuery(props?.currChatId, { skip: !props?.currChatId });
+  const {data, error, isLoading, isSuccess} = useFetchChatQuery(props?.currChatId, page, { skip: !props?.currChatId });
+
+  const { data: chatData , error:chatError , isLoading: chatLoading , isSuccess: chatSuccess } = useFetchMessagesQuery(props?.currChatId, { skip: !props?.currChatId })
 
   const [sendChatMutation, { data: sentData, isLoading: isSending, isSuccess: sentSuccess, error: sentError }] = useSendChatMutation();
 
+  if(chatSuccess){
+    console.log("Fetched messages", chatData);
+  }
 
   function sendChat(e){
     // e.preventDefault();
@@ -39,7 +45,9 @@ export default function UserChat(props) {
       const payload = new FormData();
       payload.append("senderId", user.id);
       payload.append("receiverId", data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id);
-      payload.append("message", message);
+      if(message.length>0){
+        payload.append("message", message);
+      }
 
       // const fileUploadElement = parent.children[1];
       if(fileUpload.length > 0){
@@ -73,7 +81,7 @@ export default function UserChat(props) {
   }
 
   return (
-    <div className='w-full h-full flex flex-col border justify-between'>
+    <div className='w-full h-[calc(100vh-4rem)] flex flex-col border justify-between'>
       {/* head */}
       <div className='w-full h-16 border flex flex-row items-center'>
         <img src='./assets/user_img.jpg' className='rounded-full h-4/5'/>
@@ -97,37 +105,55 @@ export default function UserChat(props) {
 
 
         {/* conversations */}
-        <div className='bg-gray-300 flex-1 p-4'>
-            <p className='p-2 bg-blue-400 w-fit rounded-full max-w-[45%]'>Hello Hello Hello Hello Hello Hello Hello Hello Hello</p>
-            <p className='p-2 bg-blue-400 w-fit rounded-full ml-auto max-w-[45%]'>Hi there Hi there Hi there Hi there Hi there</p>
-            
-            <p className='p-2 bg-blue-400 w-fit rounded-full max-w-[45%]'>{data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id}</p>
-            <p className='p-2 bg-blue-400 w-fit rounded-full ml-auto max-w-[45%]'>{user.id}</p>
+        <div className='bg-gray-300 flex-1 p-4 overflow-y-auto'>
+
+            {
+              chatData?.messages?.map((msg, idx)=>{
+                if(msg.senderId === user.id){
+                   return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl ml-auto max-w-[45%]'>
+                    <div>
+                      {msg.message.url ? msg?.message?.url.map((item)=>(
+                          <a className='bg-[#d1d5dc] px-2 rounded flex mb-1' href={item} key={item}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            {item.split("_").pop()}
+                          </a>
+                        )) 
+                        : 
+                        ''
+                      }
+                    </div>
+                    <p>{msg.message.text ? msg.message.text : ''}</p>
+                  </div>
+                }
+                else{
+                  return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl max-w-[45%]'>
+                    <div>
+                      {msg.message.url ? msg?.message?.url.map((item)=>(
+                          <a className='bg-[#d1d5dc] px-2 rounded flex mb-1' href={item} key={item}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            {item.split("_").pop()}
+                          </a>
+                        )) 
+                        : 
+                        ''
+                      }
+                    </div>
+                    <p>{msg.message.text ? msg.message.text : ''}</p>
+                  </div>
+                }
+              })
+            }
+
         </div>
 
 
 
       {/* foot */}
       <div className='w-full bg-gray-300 relative'>
-
-        {/* <div className='bg-blue-100 rounded-t-4xl absolute bottom-0 w-full h-full left-0 p-2 flex items-center'>
-          <div className=''>
-            File Content
-          </div>
-          <button id="sendBtn" className='bg-blue-500 text-white font-semibold px-4 py-2 rounded-full mr-2 absolute right-0' onClick={sendChat}>Send</button>
-        </div> */}
-        {/* <Dialog open={true} position="bottom">
-          <DialogTrigger>Open</DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Are you absolutely sure?</DialogTitle> 
-              <DialogDescription>
-                This action cannot be undone. This will permanently delete your account
-                and remove your data from our servers.
-              </DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog> */}
 
         <div className='rounded-full p-4 border bg-white' >
 

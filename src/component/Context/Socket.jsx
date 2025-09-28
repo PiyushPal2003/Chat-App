@@ -47,8 +47,7 @@ export default function Socket({children}) {
     //new message received
     socket.on("newMessage", (data) => {
       console.log("New message received:", data);
-      // toast.success("New message received");
-      // dispatch(api.util.invalidateTags(['Chats']));
+      dispatch(api.util.invalidateTags(['UserMessages']));
     });
     
     return()=>{

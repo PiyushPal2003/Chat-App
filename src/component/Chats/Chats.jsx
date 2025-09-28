@@ -13,7 +13,6 @@ export default function Chats() {
     const user = useSelector((state)=>state.auth);
     const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user?.id);
 
-
     function render(){
         if(isLoading){
             return <h1>Loading chats...</h1>
@@ -35,12 +34,20 @@ export default function Chats() {
                     {
                         data?.chats?.map((chat, index)=>(
                             <div className='flex flex-row w-full h-[5rem] items-center mb-5 border rounded-full p-1 cursor-pointer' key={index} onClick={()=>setCurrChat(chat._id)}>
-                                <img src='./assets/user_img.jpg' className='rounded-full object-cover h-4/5'/>
+                                <img src={
+                                    chat.members?.length>2 ?
+                                    chat?.photo=='NA'?'./assets/user_img.jpg':chat?.photo
+                                    :
+                                    chat?.members.find((f)=>f._id !== user.id)?.profilePhoto=="NA" ? './assets/user_img.jpg' : chat?.members.find((f)=>f._id !== user.id)?.profilePhoto
+                                    }
+                                    className='rounded-full object-cover h-4/5'
+                                    style={{aspectRatio: '1/1'}}
+                                />
                                 <div className='flex flex-col ml-2'>
                                     <h1 className='font-medium text-lg'>
                                         {chat?.members?.length<=2 ? chat?.members.find((f)=>f._id !== user.id)?.name : chat?.grpname}
                                     </h1>
-                                    <h1>{chat.lastMessage}</h1>
+                                    <h1>{chat?.lastMessage?.length > 20 ? chat.lastMessage.slice(0, 20) + "..." : chat.lastMessage}</h1>
                                 </div>
                             </div>
                         ))
