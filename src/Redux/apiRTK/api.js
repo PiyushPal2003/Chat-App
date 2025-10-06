@@ -76,6 +76,20 @@ const api = createApi({
       invalidatesTags: ["Chats"],
     }),
 
+    createGroupChat: builder.mutation({
+      query: (payload) => ({
+        url: `/creategroup`,
+        method: "POST",
+        headers: {
+          // "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        body: payload,
+        credentials: "include",
+      }),
+      invalidatesTags: ["Chats"],
+    }),
+
     getChats: builder.query({
       query: (id) => ({
         url: `/chats/${id}`,
@@ -129,4 +143,4 @@ const api = createApi({
 })
 
 export default api;
-export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useFetchMessagesQuery} = api;
+export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useFetchMessagesQuery, useCreateGroupChatMutation} = api;

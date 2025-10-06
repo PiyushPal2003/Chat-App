@@ -18,10 +18,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import {useSelector} from "react-redux";
 import toast, { Toaster } from 'react-hot-toast';
 import {getSocket} from "../../component/Context/Socket"
-import { useGetUserQuery, useCreateChatMutation } from "../../Redux/apiRTK/api";
+import { useGetUserQuery, useCreateChatMutation, useCreateGroupChatMutation} from "../../Redux/apiRTK/api";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -29,11 +30,45 @@ const Navbar05Page = () => {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth);
   const {setCurrChat} = getSocket();
+  const [open, setOpen] = useState(false);
   const [groupChat, setGroupChat] = useState(false);
   const [step, setStep] = useState(0);
+  const [mySet, setMySet] = useState(new Set());
 
   const { data: userData, error: userError, isLoading: userLoading, isSuccess: userSuccess } = useGetUserQuery();
   const [createChat, { data: createUserData, error: createuserError, isLoading: createUserLoading, isSuccess: createUserSuccess }] = useCreateChatMutation();
+  const [createGroupChat] = useCreateGroupChatMutation();
+
+  function handleProfilePhoto(event) {
+    const file = event.target.files[0];
+    console.log(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.querySelector('#grp_photo').src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function addUsers(e) {
+    const value = e.target.value;
+
+    setMySet(prevSet => {
+      const newSet = new Set(prevSet);
+      newSet.add(user.id);
+
+      if (newSet.has(value)) {
+        newSet.delete(value);
+      } else {
+        newSet.add(value);
+      }
+
+      return newSet;
+    });
+
+    console.log("Selected users:", mySet);
+  }
 
   async function createUserChat(id){
     try{
@@ -67,6 +102,57 @@ const Navbar05Page = () => {
           );
         }
       });
+    }
+    catch(err){
+      console.log(err);
+      toast.error(
+        <div>
+          <p className="font-bold">Unexpected Error!</p>
+          <p>Please try again after some time.</p>
+        </div>,
+        {
+          duration: 2200,
+          position: 'top-center',
+        }
+      );
+    }
+  }
+
+  async function createGroup(e){
+    e.preventDefault();
+    const grpName = document.getElementById('grp_name').value.trim();
+    const grpPhoto = document.getElementById('grp-photo').files[0];
+    const grpDesc = document.getElementById('grp_desc')?.value.trim();
+
+    const payload = new FormData();
+    payload.append("isGroupChat", true);
+    payload.append("name", grpName);
+    payload.append("adminId", user.id);
+    payload.append("members", JSON.stringify(Array.from(mySet)));
+    if(grpPhoto) {
+      payload.append("grpPhoto", grpPhoto)
+    }
+    else{
+      payload.append("grpPhoto", 'NA');
+    };
+    if(grpDesc) payload.append("description", grpDesc);
+
+    try{
+
+      createGroupChat(payload).unwrap()
+      .then((res) => {
+        console.log("Chat created successfully:", res);
+        setCurrChat(res.chat._id);
+        toast.success(
+          <div>
+            <p className="font-bold">Group Chat Created</p>
+          </div>,
+          {
+            duration: 2200,
+            position: 'top-center',
+          }
+        );
+      })
     }
     catch(err){
       console.log(err);
@@ -118,7 +204,13 @@ const Navbar05Page = () => {
           <div className="flex items-center gap-2 h-full">
 
             <div className="mr-0 md:mr-5">
-              <Dialog>
+              <Dialog open={open} 
+                onOpenChange={(isOpen) => {
+                if (!isOpen) setMySet(new Set());
+                setOpen(isOpen)
+                console.log("Dialog open state:", mySet);
+                }}
+                >
                 <DialogTrigger className="cursor-pointer">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -133,37 +225,132 @@ const Navbar05Page = () => {
                   <DialogHeader>
                     <DialogTitle className="text-left">Select user to chat with</DialogTitle>
                     <DialogDescription asChild>
-                      <div>
-                        {userLoading ?               
-                        <div role="status" className="p-2 flex justify-center">
-                            <svg aria-hidden="true" class="w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-black" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-                                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-                            </svg>
-                        </div>
-                        :
-                        <>
-                          <div className='flex flex-row h-[2.5rem] items-center my-2 p-1 cursor-pointer w-min whitespace-nowrap' onClick={()=>setGroupChat(true)}>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-                                  <path fill-rule="evenodd" d="M8.25 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z" clip-rule="evenodd" />
+                      <div className="relative overflow-hidden">
+                        <AnimatePresence mode="wait">
+                          {step === 0 && (
+                            <motion.div
+                              key="step0"
+                              initial={{ x: 300, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              exit={{ x: -300, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              {/* STEP 0: Options */}
+                              <div
+                                className="flex flex-row h-[2.5rem] items-center my-2 p-1 cursor-pointer"
+                                onClick={() => setStep(1)}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6">
+                                  <path fillRule="evenodd" d="M8.25 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z" clipRule="evenodd" />
                                   <path d="M5.082 14.254a8.287 8.287 0 0 0-1.308 5.135 9.687 9.687 0 0 1-1.764-.44l-.115-.04a.563.563 0 0 1-.373-.487l-.01-.121a3.75 3.75 0 0 1 3.57-4.047ZM20.226 19.389a8.287 8.287 0 0 0-1.308-5.135 3.75 3.75 0 0 1 3.57 4.047l-.01.121a.563.563 0 0 1-.373.486l-.115.04c-.567.2-1.156.349-1.764.441Z" />
                                 </svg>
 
-                                <div className='flex flex-col ml-2'>
-                                    <p className='font-medium text-lg'>New Group</p>
-                                </div>
-                          </div>
-                          {userData?.Users?.map((ele, index)=>(
-                              <div className='flex flex-row h-[2.5rem] items-center my-2 p-1 cursor-pointer w-min whitespace-nowrap' key={index} onClick={()=>createUserChat(ele._id)}>
-                                  <img src={`${ele.profilePhoto.includes('googleusercontent') || ele.profilePhoto == 'NA' ? './assets/user_img.jpg': ele.profilePhoto}`} className='rounded-full object-cover' style={{aspectRatio: '1', height: '95%'}}/>
-                                  <div className='flex flex-col ml-2'>
-                                      <p className='font-medium text-lg'>{ele.name}</p>
-                                  </div>
-                                  {groupChat && <input type="checkbox" className="ml-auto"/>}
+                                <p className="ml-2 font-medium text-lg">New Group</p>
                               </div>
-                          ))}
-                        </>
-                      }
+
+                              {userData?.Users?.map((ele, i) => (
+                                <div
+                                  key={i}
+                                  className="flex flex-row h-[2.5rem] items-center my-2 p-1 cursor-pointer"
+                                  onClick={() => createUserChat(ele._id)}
+                                >
+                                  <img
+                                    src={`${ele.profilePhoto.includes("googleusercontent") || ele.profilePhoto == "NA" ? "./assets/user_img.jpg" : ele.profilePhoto}`}
+                                    className="rounded-full object-cover"
+                                    style={{ aspectRatio: "1", height: "95%" }}
+                                  />
+                                  <p className="ml-2 font-medium text-lg">{ele.name}</p>
+                                </div>
+                              ))}
+                            </motion.div>
+                          )}
+
+                          {step === 1 && (
+                            <motion.div
+                              key="step1"
+                              initial={{ x: 300, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              exit={{ x: -300, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              {/* STEP 1: Select Users */}
+                              {userData?.Users?.map((ele, i) => (
+                                <>
+                                <label
+                                  key={i}
+                                  className="flex flex-row h-[2.5rem] items-center my-1 p-1 cursor-pointer"
+                                  >
+                                  <img
+                                    src={`${
+                                      ele.profilePhoto.includes("googleusercontent") || ele.profilePhoto == "NA"
+                                        ? "./assets/user_img.jpg"
+                                        : ele.profilePhoto
+                                    }`}
+                                    className="rounded-full object-cover"
+                                    style={{ aspectRatio: "1", height: "95%" }}
+                                  />
+                                  <p className="ml-2 font-medium text-lg">{ele.name}</p>
+                                  <input
+                                    type="checkbox"
+                                    className="ml-auto h-5/10 aspect-square"
+                                    value={ele._id}
+                                    onChange={addUsers}
+                                    />
+                                </label>
+                                {i != userData?.Users?.length-1 ? <hr/> : ''}
+                                </>
+                              ))}
+                              <div className="flex justify-end">
+                                <button
+                                  className={`mt-3 px-3 py-1 bg-black text-white rounded cursor-pointer ${mySet.size < 3 ? 'disabled:cursor-not-allowed disabled:opacity-50' : ''}`}
+                                  onClick={() => setStep(2)}
+                                  disabled={mySet.size < 3}
+                                  >
+                                  Next
+                                </button>
+                                <button className="ml-3 mt-3 px-3 py-0 bg-gray-300 rounded cursor-pointer" onClick={() => setStep(0)}>
+                                  Back
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+
+                          {step === 2 && (
+                            <motion.div
+                              key="step2"
+                              initial={{ x: 300, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              exit={{ x: -300, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              {/* STEP 2: Enter Group Name */}
+                              <form>
+                                <div className="flex items-center justify-center flex-col">
+                                  <img id="grp_photo" src="./assets/grp_img.jpg" className="w-17 h-17 rounded-full object-cover"/>
+                                  <Label htmlFor="grp-photo" className="cursor-pointer text-sm hover:underline">Upload Group Photo</Label>
+                                  <input type="file" id="grp-photo" className="hidden" placeholder="Upload Group Photo" name="grpPhoto" onChange={handleProfilePhoto}/>
+                                </div>
+
+                                <label for="grp_name" >Group Name</label>
+                                <input id="grp_name" className="w-full border rounded p-2 mt-2" placeholder="Enter group name..." required/>
+
+                                <label for="grp_desc" >Group Description</label>
+                                <input id="grp_desc" className="w-full border rounded p-2 mt-2" placeholder="Enter group description..." />
+
+                                <p className="text-center text-xs font-semibold" >Initail Admin will be user creating the group, which can be changed in settings</p>
+
+                                <div className="mt-4 flex space-x-2">
+                                  <button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setStep(1)}>
+                                    Back
+                                  </button>
+                                  <button type="submit" className="cursor-pointer px-4 py-2 bg-green-500 text-white rounded" onClick={createGroup}>
+                                    Create Group
+                                  </button>
+                                </div>
+                              </form>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </DialogDescription>
                   </DialogHeader>
