@@ -87,7 +87,7 @@ export default function UserChat(props) {
         <img src='./assets/user_img.jpg' className='rounded-full h-4/5'/>
         <div>
           <h1 className='font-medium text-lg ml-2'>
-            {data?.chat?.members?.filter(member => member._id !== user.id)[0]?.name}
+            {data?.chat?.isGroupChat ? data?.chat?.grpname : data?.chat?.members?.filter(member => member._id !== user.id)[0]?.name}
           </h1>
           <h1 className='text-sm ml-2'>
             {user.onlineUsers[data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id] ? 
