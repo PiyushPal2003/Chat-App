@@ -42,22 +42,23 @@ export default function UserChat(props) {
         parent.children[2].value = "";
       }
 
+      let receiverIdArray = data?.chat?.members?.filter(member => member._id !== user.id).map(member => member._id);
+
       const payload = new FormData();
       payload.append("senderId", user.id);
-      payload.append("receiverId", data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id);
+      payload.append("receiverId", JSON.stringify(receiverIdArray));
       if(message.length>0){
         payload.append("message", message);
       }
-
-      // const fileUploadElement = parent.children[1];
+      
       if(fileUpload.length > 0){
         for(let i=0; i<fileUpload.length; i++){
           payload.append("files", fileUpload[i]);
         }
         setFileUpload([]);
       }
-
-      // console.log("payload:", payload);
+      
+      receiverIdArray = [];
       
       sendChatMutation({data: payload, id: props?.currChatId})
       .unwrap()
@@ -90,12 +91,23 @@ export default function UserChat(props) {
             {data?.chat?.isGroupChat ? data?.chat?.grpname : data?.chat?.members?.filter(member => member._id !== user.id)[0]?.name}
           </h1>
           <h1 className='text-sm ml-2'>
-            {user.onlineUsers[data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id] ? 
-            (
-              <span className="text-[0.7rem] text-green-500">🟢 Online</span>
-            ) : (
-              <span className="text-[0.7rem] text-red-500">🔴 Offline</span>
-            )
+            {data?.chat?.isGroupChat ?
+              (() => {
+                const onlineCount = data?.chat?.members?.reduce(
+                  (acc, member) =>
+                    acc + (member._id !== user.id && user.onlineUsers[member._id] ? 1 : 0),
+                  0
+                );
+                return onlineCount > 0
+                  ? <span className="text-[0.8rem] text-green-500">{onlineCount} member{onlineCount > 1 ? "s" : ""} online</span>
+                  : <span className="text-[0.8rem] text-red-500">No members online</span>;
+              })()
+            :
+              (user.onlineUsers[data?.chat?.members?.filter(member => member._id !== user.id)[0]?._id] ? 
+              ( <span className="text-[0.7rem] text-green-500">🟢 Online</span>
+              ) : (
+                <span className="text-[0.7rem] text-red-500">🔴 Offline</span>)
+              )
             }
           </h1>
         </div>
@@ -183,7 +195,7 @@ export default function UserChat(props) {
             {/* 2 */}
             <input type="text" placeholder='Type a message...' className='rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent' onKeyDown={sendChat} />
             {/* 3 */}
-            <button id="sendBtn" className='bg-blue-500 text-white font-semibold px-4 py-2 rounded-full ml-2' onClick={sendChat}>Send</button>
+            <button id="sendBtn" className='bg-blue-500 text-white font-semibold px-4 py-2 rounded-full ml-2 cursor-pointer' onClick={sendChat}>Send</button>
           </div>
         </div>
 
