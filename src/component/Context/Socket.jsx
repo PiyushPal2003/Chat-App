@@ -48,6 +48,7 @@ export default function Socket({children}) {
     socket.on("newMessage", (data) => {
       console.log("New message received:", data);
       dispatch(api.util.invalidateTags(['UserMessages']));
+      dispatch(api.util.invalidateTags(['Chats']));
     });
     
     return()=>{

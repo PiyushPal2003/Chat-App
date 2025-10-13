@@ -169,6 +169,13 @@ const Navbar05Page = () => {
     }
   }
 
+  function logout(){
+    if(localStorage.getItem("chatAccessToken")){
+      localStorage.removeItem("chatAccessToken");
+    }
+    navigate('/auth');
+  }
+
   useEffect(() => {
     if (userSuccess) {
       console.log("Fetched user:", userData);
@@ -367,7 +374,7 @@ const Navbar05Page = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>Setting</DropdownMenuItem>
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+                <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
