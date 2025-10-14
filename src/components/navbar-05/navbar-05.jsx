@@ -34,6 +34,7 @@ const Navbar05Page = () => {
   const [groupChat, setGroupChat] = useState(false);
   const [step, setStep] = useState(0);
   const [mySet, setMySet] = useState(new Set());
+  const [showDialog, setShowDialog] = useState(false);
 
   const { data: userData, error: userError, isLoading: userLoading, isSuccess: userSuccess } = useGetUserQuery();
   const [createChat, { data: createUserData, error: createuserError, isLoading: createUserLoading, isSuccess: createUserSuccess }] = useCreateChatMutation();
@@ -365,15 +366,14 @@ const Navbar05Page = () => {
               </Dialog>
             </div>
 
-            <DropdownMenu className="w-full h-full">
-              <DropdownMenuTrigger className="w-full h-full">
+            <DropdownMenu className="w-full h-full cursor-pointer">
+              <DropdownMenuTrigger className="w-full h-full cursor-pointer">
                 <img src={`${user.profilePhoto.includes('googleusercontent') || user.profilePhoto == 'NA' ? './assets/user_img.jpg': user.profilePhoto}`} className="rounded-full object-cover h-3/5" style={{aspectRatio: '1', height: '70%'}}/>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel>Hi, {user.name.split(' ')[0]}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Setting</DropdownMenuItem>
+                <DropdownMenuItem onClick={()=>setShowDialog(true)}>Profile</DropdownMenuItem>
                 <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -382,8 +382,7 @@ const Navbar05Page = () => {
       </nav>
 
 
-      {/* <Dialog>
-        <DialogTrigger>Open</DialogTrigger>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Are you absolutely sure?</DialogTitle>
@@ -393,7 +392,7 @@ const Navbar05Page = () => {
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
-      </Dialog> */}
+      </Dialog>
 
     </>
   );
