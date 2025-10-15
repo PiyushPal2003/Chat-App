@@ -274,7 +274,12 @@ export default function UserChat(props) {
           >
             <div className='w-full h-full'>
               <div className='w-full h-full flex flex-col items-center justify-center gap-2'>
-                <img src={data?.chat?.isGroupChat ? data?.chat?.grpname : data?.chat?.members?.filter(member => member._id !== user.id)[0]?.profilePhoto} 
+                <img src={
+                  data?.chat?.isGroupChat ? 
+                  data?.chat?.photo == 'NA' ? './assets/grp_img.jpg' : data?.chat?.photo
+                  : 
+                  data?.chat?.members?.filter(member => member._id !== user.id)[0]?.profilePhoto
+                } 
                 className='rounded-full object-cover h-15'
                 style={{aspectRatio: '1/1'}}
                 />
