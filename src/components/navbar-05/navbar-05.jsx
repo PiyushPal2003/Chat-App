@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label"
 import {useSelector} from "react-redux";
 import toast, { Toaster } from 'react-hot-toast';
 import {getSocket} from "../../component/Context/Socket"
-import { useGetUserQuery, useCreateChatMutation, useCreateGroupChatMutation} from "../../Redux/apiRTK/api";
+import { useGetUserQuery, useCreateChatMutation, useCreateGroupChatMutation, useEditProfileMutation} from "../../Redux/apiRTK/api";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -35,8 +35,11 @@ const Navbar05Page = () => {
   const [step, setStep] = useState(0);
   const [mySet, setMySet] = useState(new Set());
   const [showDialog, setShowDialog] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editValues, setEditValues] = useState();
 
   const { data: userData, error: userError, isLoading: userLoading, isSuccess: userSuccess } = useGetUserQuery();
+  const [editProfile, { data: editedUserData, error: editUserError, isLoading: editUserLoading, isSuccess: editUserSuccess }] = useEditProfileMutation();
   const [createChat, { data: createUserData, error: createuserError, isLoading: createUserLoading, isSuccess: createUserSuccess }] = useCreateChatMutation();
   const [createGroupChat] = useCreateGroupChatMutation();
 
@@ -170,6 +173,54 @@ const Navbar05Page = () => {
     }
   }
 
+  function handleProfilePhoto(event) {
+    const file = event.target.files[0];
+    console.log(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.querySelector('#editImg').src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function editSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+
+    const payload = new FormData();
+
+    const profilePhoto = formData.get('profilePhoto');
+    const desc = formData.get('desc').trim();
+    const name = formData.get('name');
+
+    const isDummyPhoto = profilePhoto && profilePhoto.name === "user_img.jpg";
+
+    if (!isDummyPhoto && profilePhoto && profilePhoto.name) {
+      payload.append("profilePhoto", profilePhoto);
+    }
+    if (desc && desc !== user.desc) {
+      payload.append("desc", desc);
+    }
+    if (name && name !== user.name) {
+      payload.append("name", name);
+    }
+
+    if ([...payload.keys()].length > 0) {
+      editProfile(payload)
+        .unwrap()
+        .then((res) => {
+          console.log("Profile edited successfully:", res);
+          setEditMode(false);
+          setShowDialog(false);
+        })
+        .catch((err) => {
+          console.error("Error editing profile:", err);
+        });
+    }
+  }
+
   function logout(){
     if(localStorage.getItem("chatAccessToken")){
       localStorage.removeItem("chatAccessToken");
@@ -190,6 +241,7 @@ const Navbar05Page = () => {
         navigate('/auth');
       // }
     }
+    setEditValues({name: user?.name, desc: user?.desc || ''});
   }, [userSuccess, userData, userError]);
 
 
@@ -339,10 +391,10 @@ const Navbar05Page = () => {
                                   <input type="file" id="grp-photo" className="hidden" placeholder="Upload Group Photo" name="grpPhoto" onChange={handleProfilePhoto}/>
                                 </div>
 
-                                <label for="grp_name" >Group Name</label>
+                                <Label htmlFor="grp_name" >Group Name</Label>
                                 <input id="grp_name" className="w-full border rounded p-2 mt-2" placeholder="Enter group name..." required/>
 
-                                <label for="grp_desc" >Group Description</label>
+                                <Label for="grp_desc" >Group Description</Label>
                                 <input id="grp_desc" className="w-full border rounded p-2 mt-2" placeholder="Enter group description..." />
 
                                 <p className="text-center text-xs font-semibold" >Initail Admin will be user creating the group, which can be changed in settings</p>
@@ -373,7 +425,133 @@ const Navbar05Page = () => {
               <DropdownMenuContent>
                 <DropdownMenuLabel>Hi, {user.name.split(' ')[0]}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={()=>setShowDialog(true)}>Profile & Settings</DropdownMenuItem>
+
+                
+                <Dialog open={showDialog} onOpenChange={(issOpen) => {
+                  setShowDialog(issOpen)
+                  }}> 
+                  <DialogTrigger asChild>
+                    <span className="cursor-pointer">
+                      Profile & Settings
+                    </span>
+                  </DialogTrigger>
+                  <DialogContent className="w-xl">
+                    <DialogHeader>
+                      <DialogTitle>Profile & Settings</DialogTitle>
+                      <DialogDescription>
+                        <div className="flex flex-col items-center mt-4 gap-1">
+                          <form className="w-full flex flex-col items-center" onSubmit={editSubmit}>
+                            {editMode ? (
+                              <>
+                                <div className="flex items-center justify-center flex-col">
+                                  <img
+                                    src={
+                                      user.profilePhoto.includes("googleusercontent") ||
+                                      user.profilePhoto === "NA"
+                                        ? "./assets/user_img.jpg"
+                                        : user.profilePhoto
+                                    }
+                                    className="rounded-full object-cover w-20 h-20"
+                                    id="editImg"
+                                  />
+                                  <Label htmlFor="profile-photo" className="cursor-pointer text-sm hover:underline">
+                                    Update Profile Photo
+                                  </Label>
+                                  <input
+                                    type="file"
+                                    id="profile-photo"
+                                    className="hidden"
+                                    placeholder="Update Profile Photo"
+                                    onChange={handleProfilePhoto}
+                                    name="profilePhoto"
+                                  />
+                                </div>
+
+                                <div className="items-center w-6/10">
+                                  <Label htmlFor="editName">Name:</Label>
+                                  <Input
+                                    name="name"
+                                    className="border rounded p-2"
+                                    value={editValues.name || ""}
+                                    id="editName"
+                                    onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
+                                  />
+                                </div>
+
+                                <div className="items-center w-6/10">
+                                  <Label htmlFor="editDesc">Description:</Label>
+                                  <Input
+                                    name="desc"
+                                    className="border rounded p-2"
+                                    value={editValues.desc || ""}
+                                    placeholder="Enter Description"
+                                    id="editDesc"
+                                    onChange={(e) => setEditValues({ ...editValues, desc: e.target.value })}
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <img
+                                  src={
+                                    user.profilePhoto.includes("googleusercontent") ||
+                                    user.profilePhoto === "NA"
+                                      ? "./assets/user_img.jpg"
+                                      : user.profilePhoto
+                                  }
+                                  className="rounded-full object-cover w-24 h-24"
+                                />
+                                <p className="text-lg">Name: {user?.name}</p>
+                                <p className="text-lg">Description: {user.desc ? user?.desc : "- -"}</p>
+                              </>
+                            )}
+
+                            {editMode ? (
+                              <div className="flex mt-4 gap-2 justify-end w-full">
+                                <button type="submit" className="cursor-pointer bg-black text-white px-3 py-1 rounded">
+                                  Save
+                                </button>
+                                <button
+                                  className="bg-gray-300 px-3 py-1 rounded"
+                                  type="button"
+                                  onClick={() => {
+                                    setEditMode(false);
+                                    setEditValues({ name: user?.name, desc: user?.desc });
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setEditMode(true)}
+                                className="flex items-center mt-4 bg-black text-white px-3 py-1 rounded cursor-pointer ml-auto"
+                                type="button"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth="1.5"
+                                  stroke="currentColor"
+                                  className="size-4"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+                                  />
+                                </svg>{" "}
+                                Edit
+                              </button>
+                            )}
+                          </form>
+                        </div>
+                      </DialogDescription>
+                    </DialogHeader>
+                </DialogContent>
+              </Dialog>
+                
                 <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -381,31 +559,6 @@ const Navbar05Page = () => {
         </div>
       </nav>
 
-
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Profile & Settings</DialogTitle>
-            <DialogDescription>
-              <div>
-                <button className="ml-auto px-2 py-1 bg-black text-white rounded cursor-pointer flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                  </svg>
-                  Edit
-                  </button>
-
-                  <div className="flex flex-col items-center justify-center mt-1 gap-2 w-full h-full">
-                    <img src={`${user.profilePhoto.includes('googleusercontent') || user.profilePhoto == 'NA' ? './assets/user_img.jpg': user.profilePhoto}`} className="rounded-full object-cover h-3/5" style={{aspectRatio: '1', width: '20%'}}/>
-                    <input className="font-bold text-lg" value={user?.name} />
-                    <input className="text-sm text-gray-500" value={user?.desc}/>
-                  </div>
-
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
 
     </>
   );

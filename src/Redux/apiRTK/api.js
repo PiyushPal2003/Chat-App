@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-// import { login, logout } from "../Reducers/authSlice";
+import { login, logout } from "../Reducers/authSlice";
 
 const baseQuery = fetchBaseQuery({ baseUrl: `http://localhost:5000/api`, credentials: "include" });
 
@@ -8,6 +8,7 @@ const fetchBaseQueryWithReAuth = async (args, api, extraOptions) => {
 
   if (result?.error?.status === 401 && result?.error?.data?.message === "Invalid or expired token") 
   {
+    console.log("access token expired, trying refresh token");
     const refreshResult = await baseQuery({ url: "/auth/refresh" }, api, extraOptions);;
     if (refreshResult.data) {
       result = await baseQuery(args, api, extraOptions);
@@ -24,7 +25,7 @@ const api = createApi({
   reducerPath: "api",
   // baseQuery: fetchBaseQuery({ baseUrl: `http://localhost:5000/api`, credentials: "include" }),
   baseQuery: fetchBaseQueryWithReAuth,
-  tagTypes: ["Users", "Chats", "UserMessages"],
+  tagTypes: ["currentUser", "Users", "Chats", "UserMessages"],
 
   endpoints: (builder) => ({
 
@@ -50,6 +51,18 @@ const api = createApi({
       },
     }),
 
+    getCurrentUser: builder.query({
+      query: () => ({
+        url: "/currentuser",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        credentials: "include",
+      }),
+      providesTags: ["currentUser"],
+    }),
+
     getUser: builder.query({
       query: () => ({
         url: "/users",
@@ -60,6 +73,28 @@ const api = createApi({
         credentials: "include",
       }),
       providesTags: ["Users"],
+    }),
+
+    editProfile: builder.mutation({
+      query: (data) => ({
+        url: "/editprofile",
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        body: data,
+        credentials: "include",
+      }),
+      invalidatesTags: ["currentUser"],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          console.log("Profile edited successfully:", data);
+          dispatch(login(data.usr));
+        } catch (err) {
+          console.error(err);
+        }
+      },
     }),
 
     createChat: builder.mutation({
@@ -143,4 +178,4 @@ const api = createApi({
 })
 
 export default api;
-export const { useGetUserQuery, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useFetchMessagesQuery, useCreateGroupChatMutation} = api;
+export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery} = api;

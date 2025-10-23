@@ -4,15 +4,22 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { useSelector, useDispatch } from 'react-redux';
 import { login, logout } from "../../Redux/Reducers/authSlice";
+import {useLazyGetCurrentUserQuery} from '../../Redux/apiRTK/api';
 
 function ProtectedRoute() {
   const [valid, setValid] = useState(null);
   const location = useLocation();
   const user = useSelector((state) => state.auth);
   const dispatch = useDispatch();
+  const token = localStorage.getItem("chatAccessToken");
+
+  // const { data: currentUser, isSuccess, isError } = useGetCurrentUserQuery(undefined, {
+  //   skip: !token,
+  // });
+
+  const [triggerGetUser, { data: userData, error, isLoading }] = useLazyGetCurrentUserQuery();
 
   useEffect(() => {
-    const token = localStorage.getItem("chatAccessToken");
     if (token) {
       try {
         const decoded = jwtDecode(token);
@@ -44,7 +51,17 @@ function ProtectedRoute() {
         } else {
           console.log("valid access token");
           setValid(isValid);
-          dispatch(login(decoded));
+
+          triggerGetUser().unwrap().then((res) => {
+            console.log("Fetched current user:", res.user);
+            dispatch(login(res.user));
+          })
+          .catch((err) => {
+            console.log("Error fetching current user:", err);
+            dispatch(logout());
+            setValid(false);
+          });
+
         }
       } catch (e) {
         console.log("Unknown error or token invalid", e);

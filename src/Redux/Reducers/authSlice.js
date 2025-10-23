@@ -5,6 +5,7 @@ const initialState = {
     email: "",
     profilePhoto: "",
     id: "",
+    desc: "",
     login: false,
     onlineUsers: {},
 }
@@ -17,7 +18,8 @@ const authSlice = createSlice({
             state.name = action.payload.name;
             state.email = action.payload.email;
             state.profilePhoto = action.payload.profilePhoto ? action.payload.profilePhoto : action.payload.photo;
-            state.id = action.payload.id;
+            state.id = action.payload._id;
+            state.desc = action.payload.desc ? action.payload.desc : "";
             state.login = true;
         },
         logout:(state, action)=>{
@@ -25,6 +27,7 @@ const authSlice = createSlice({
             state.email = "";
             state.profilePhoto = "";
             state.id = "";
+            state.desc = "";
             state.login = false;
         },
         onlineUsersList:(state, action)=>{
