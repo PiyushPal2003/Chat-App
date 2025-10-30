@@ -149,8 +149,8 @@ const api = createApi({
     }),
 
     fetchMessages: builder.query({
-      query: (id) => ({
-        url: `/fetchmessages/${id}`,
+      query: ({id, lastMessageId}) => ({
+        url: `/fetchmessages?chatId=${id}&lastMessageId=${lastMessageId || ""}`,
         headers: {
           "Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
@@ -178,4 +178,4 @@ const api = createApi({
 })
 
 export default api;
-export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery} = api;
+export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useLazyFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery} = api;

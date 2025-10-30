@@ -1,29 +1,45 @@
-import React from 'react'
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {getSocket} from "../Context/Socket";
-import {useFetchChatQuery, useSendChatMutation, useFetchMessagesQuery} from "../../Redux/apiRTK/api"
-import { useEffect } from 'react';
+import {useFetchChatQuery, useSendChatMutation, useLazyFetchMessagesQuery} from "../../Redux/apiRTK/api"
 import { motion, AnimatePresence } from "framer-motion";
+import useElementInView from '../../custom_hooks/Intersection';
+import { dateFormat, groupMessagesByDate, convertDateToReadable } from '../../Utilities';
 
-import { Button } from "@/components/ui/button"
 
 export default function UserChat(props) {
 
-  const page = useRef(null);
+  // const page = useRef(null);
+  const [allMessages, setAllMessages] = useState({});
   const chatContainerRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const [openDrawer, setOpenDrawer] = useState(false);
+  const [lastMessage, setLastMessage] = useState({id: null, more: false});
   const [fileUpload, setFileUpload] = useState([]);
   const infoRef = useRef();
   const inputRef = useRef();
   const user = useSelector((state)=>state.auth);
-  const {currChat} = getSocket();  
+  const [targetRef, isInView] = useElementInView(
+    { 
+      root: chatContainerRef.current,
+      threshold: 0.8 
+    }
+  );
+  // const {currChat} = getSocket();
+
+  const combineRefs = useCallback(
+    (node) => {
+      chatContainerRef.current = node;
+      targetRef.current = node;
+    },
+    [targetRef],
+  );
+
   console.log("Current Chat ID prop:", props.currChatId);
 
-  const {data, error, isLoading, isSuccess} = useFetchChatQuery(props?.currChatId, page, { skip: !props?.currChatId });
 
-  const { data: chatData , error:chatError , isLoading: chatLoading , isSuccess: chatSuccess } = useFetchMessagesQuery(props?.currChatId, { skip: !props?.currChatId })
+  const {data, error, isLoading, isSuccess} = useFetchChatQuery(props?.currChatId, { skip: !props?.currChatId });
+
+  const [fetchMessagesTrigger, { data: chatData , error:chatError , isLoading: chatLoading , isSuccess: chatSuccess, refetch }] = useLazyFetchMessagesQuery();
 
   const [sendChatMutation, { data: sentData, isLoading: isSending, isSuccess: sentSuccess, error: sentError }] = useSendChatMutation();
 
@@ -74,6 +90,21 @@ export default function UserChat(props) {
       .unwrap()
       .then((res) => {
         console.log("Chat sent successfully:", res);
+        const date = new Date(res.chat.timestamp).toDateString();
+        if(!allMessages[date]){
+            // allMessages[date] = [];
+          setAllMessages((prev)=>
+              ({...prev, [date]: []})
+          );
+        }
+        setAllMessages((prev)=>(
+          {...prev, [date]: [...prev[date], res.chat]}
+        ))
+        // const withNewMessage = [...allMessages, res.chat];
+        // const groupedMessage = groupMessagesByDate(withNewMessage);
+
+        // setAllMessages(groupedMessage);
+        // setAllMessages((prev)=>[...prev, res.chat])
       })
       .catch((err) => {
         console.error("Error sending chat:", err);
@@ -95,11 +126,76 @@ export default function UserChat(props) {
     setOpen((prev)=>!prev);
   }
 
+  useEffect(() => {
+    if (isInView) {
+      if(lastMessage.more && lastMessage.id){
+        console.log("Last message ID:", lastMessage.id);
+        fetchMessagesTrigger({id: props?.currChatId, lastMessageId: lastMessage.id}).unwrap()
+        .then((res)=>{
+          console.log("More messages fetched on scroll:", res);
+          const newMessages = [...res?.messages].reverse();
+
+              setAllMessages((prev) => {
+                let updated = { ...prev };
+
+                newMessages.forEach((msg) => {
+                  const date = new Date(msg.timestamp).toDateString();
+                  if (!updated[date]) {
+                    updated = {[date] : [], ...updated}; 
+                  }
+                  updated[date] = [msg, ...updated[date]];
+                });
+
+                return updated;
+              });
+
+          // const combinedMessages = [...res?.messages, ...allMessages];
+          // const groupedMessage = groupMessagesByDate(combinedMessages);
+          // setAllMessages(groupedMessage);
+          // setAllMessages((prev)=>[...res?.messages, ...prev]);
+
+          let hasMore = false;
+          res?.messages.length < 8 ? hasMore = false : hasMore = true;
+          setLastMessage({
+            id : res?.messages[0]?._id,
+            more : hasMore
+          });
+        });
+        // setLastMessage((prev)=>({...prev, id: }) );
+      }
+      console.log("Chat container is in view");
+    }
+  }, [isInView]);
+
   useEffect(()=>{
     if(chatContainerRef.current){
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatData]);
+
+  useEffect(()=>{
+    console.log(props?.currChatId);
+    fetchMessagesTrigger({id: props?.currChatId}).unwrap()
+    .then((res)=>{
+      console.log("Messages fetched on chat change:", res);
+
+      const groupedMessage = groupMessagesByDate(res?.messages);
+
+      setAllMessages(groupedMessage);
+
+      setLastMessage(()=>{
+        let hasMore = false;
+        res?.messages.length < 8 ? hasMore = false : hasMore = true;
+        console.log(hasMore)
+        return{
+          id : res?.messages[0]?._id,
+          more : hasMore
+        }
+      });
+
+    });
+
+  }, [props?.currChatId]);
 
   useEffect(()=>{
     if(open){
@@ -179,48 +275,106 @@ export default function UserChat(props) {
 
         {/* conversations */}
         <div className='bg-gray-300 flex-1 p-4 overflow-y-auto' ref={chatContainerRef}>
-
+          <div ref={targetRef} />
             {
-              chatData?.messages?.map((msg, idx)=>{
-                if(msg.senderId === user.id){
-                   return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl ml-auto max-w-[45%]'>
-                    <div>
-                      {msg.message.url ? msg?.message?.url.map((item)=>(
-                          <a className='bg-[#d1d5dc] px-2 rounded flex mb-1' href={item} key={item}>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                            </svg>
-                            {item.split("_").pop()}
-                          </a>
-                        )) 
-                        : 
-                        ''
-                      }
-                    </div>
-                    <p>{msg.message.text ? msg.message.text : ''}</p>
-                  </div>
-                }
-                else{
-                  return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl max-w-[45%]'>
-                    <div>
-                      {msg.message.url ? msg?.message?.url.map((item)=>(
-                          <a className='bg-[#d1d5dc] px-2 rounded flex mb-1' href={item} key={item}>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                            </svg>
-                            {item.split("_").pop()}
-                          </a>
-                        )) 
-                        : 
-                        ''
-                      }
-                    </div>
-                    <p>{msg.message.text ? msg.message.text : ''}</p>
-                  </div>
-                }
-              })
-            }
+              Object.keys(allMessages).map((date, indx)=>(
+              <div>
+                <div className="text-center text-gray-500 my-3 border rounded" key={indx}>
+                  {convertDateToReadable(date)}
+                </div>
 
+                {
+                  allMessages[date].map((msg, idx)=>{
+                    if(msg.senderId === user.id){
+                      return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl ml-auto max-w-[45%]'>
+                        <div>
+                          {msg.message.url ? msg?.message?.url.map((item)=>(
+                              <a className='bg-[#d1d5dc] px-2 rounded flex mb-1' href={item} key={item}>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                {item.split("_").pop()}
+                              </a>
+                            )) 
+                            : 
+                            ''
+                          }
+                        </div>
+                        <div className='w-full'>
+                          <p>{msg.message.text ? msg.message.text : ''}</p>
+                          <p className='text-xs italic text-right'>{dateFormat(msg.timestamp)}</p>
+                        </div>
+                      </div>
+                    }
+                    else{
+                      return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl max-w-[45%]'>
+                        <div>
+                          {msg.message.url ? msg?.message?.url.map((item)=>(
+                              <a className='bg-[#d1d5dc] px-2 rounded flex mb-1' href={item} key={item}>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                {item.split("_").pop()}
+                              </a>
+                            )) 
+                            : 
+                            ''
+                          }
+                        </div>
+                        <p>{msg.message.text ? msg.message.text : ''}</p>
+                        <p className='text-xs italic text-right'>{dateFormat(msg.timestamp)}</p>
+                      </div>
+                    }
+                  })
+                }
+              </div>
+              
+              ))
+                // allMessages?.map((msg, idx)=>{
+                //   if(msg.senderId === user.id){
+                //     return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl ml-auto max-w-[45%]'>
+                //       <div>
+                //         {msg.message.url ? msg?.message?.url.map((item)=>(
+                //             <a className='bg-[#d1d5dc] px-2 rounded flex mb-1' href={item} key={item}>
+                //               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                //                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                //               </svg>
+                //               {item.split("_").pop()}
+                //             </a>
+                //           )) 
+                //           : 
+                //           ''
+                //         }
+                //       </div>
+                //       <div className='w-full'>
+                //         <p>{msg.message.text ? msg.message.text : ''}</p>
+                //         <p className='text-xs italic text-right'>{dateFormat(msg.timestamp)}</p>
+                //       </div>
+                //     </div>
+                //   }
+                //   else{
+                //     return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl max-w-[45%]'>
+                //       <div>
+                //         {msg.message.url ? msg?.message?.url.map((item)=>(
+                //             <a className='bg-[#d1d5dc] px-2 rounded flex mb-1' href={item} key={item}>
+                //               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                //                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                //               </svg>
+                //               {item.split("_").pop()}
+                //             </a>
+                //           )) 
+                //           : 
+                //           ''
+                //         }
+                //       </div>
+                //       <p>{msg.message.text ? msg.message.text : ''}</p>
+                //       <p className='text-xs italic text-right'>{dateFormat(msg.timestamp)}</p>
+                //     </div>
+                //   }
+                // })
+
+            }
+          
         </div>
 
 

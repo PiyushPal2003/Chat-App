@@ -15,10 +15,10 @@ const authSlice = createSlice({
     initialState,
     reducers: {
         login:(state, action)=>{
+            state.id = action.payload._id;
             state.name = action.payload.name;
             state.email = action.payload.email;
             state.profilePhoto = action.payload.profilePhoto ? action.payload.profilePhoto : action.payload.photo;
-            state.id = action.payload._id;
             state.desc = action.payload.desc ? action.payload.desc : "";
             state.login = true;
         },

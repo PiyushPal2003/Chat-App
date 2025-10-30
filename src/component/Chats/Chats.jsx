@@ -11,7 +11,7 @@ export default function Chats() {
     const {currChat, setCurrChat} = getSocket();
     console.log("Current Chat ID:", currChat);
     const user = useSelector((state)=>state.auth);
-    const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user?.id);
+    const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user?.id, {skip: !user?.id});
 
     function render(){
         if(isLoading){
@@ -69,12 +69,12 @@ export default function Chats() {
             if(initialRef.current){
                 setCurrChat(data?.chats[0]?._id);
                 initialRef.current = false;
+                render();
             }
         }
         else if(error){
             console.error("Error fetching chat data:", error);
         }
-        render();
     }, [isSuccess, error, currChat]);
 
   return (
