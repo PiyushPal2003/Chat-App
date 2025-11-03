@@ -43,17 +43,17 @@ const Navbar05Page = () => {
   const [createChat, { data: createUserData, error: createuserError, isLoading: createUserLoading, isSuccess: createUserSuccess }] = useCreateChatMutation();
   const [createGroupChat] = useCreateGroupChatMutation();
 
-  function handleProfilePhoto(event) {
-    const file = event.target.files[0];
-    console.log(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        document.querySelector('#grp_photo').src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-  }
+  // function handleProfilePhoto(event) {
+  //   const file = event.target.files[0];
+  //   console.log(file);
+  //   if (file) {
+  //     const reader = new FileReader();
+  //     reader.onload = (e) => {
+  //       document.querySelector('#grp_photo').src = e.target.result;
+  //     };
+  //     reader.readAsDataURL(file);
+  //   }
+  // }
 
   function addUsers(e) {
     const value = e.target.value;

@@ -5,6 +5,8 @@ import {useFetchChatQuery, useSendChatMutation, useLazyFetchMessagesQuery} from 
 import { motion, AnimatePresence } from "framer-motion";
 import useElementInView from '../../custom_hooks/Intersection';
 import { dateFormat, groupMessagesByDate, convertDateToReadable } from '../../Utilities';
+import { Label } from '../../components/ui/label';
+import ChatInfo from './ChatInfo';
 
 
 export default function UserChat(props) {
@@ -26,23 +28,16 @@ export default function UserChat(props) {
   );
   // const {currChat} = getSocket();
 
-  const combineRefs = useCallback(
-    (node) => {
-      chatContainerRef.current = node;
-      targetRef.current = node;
-    },
-    [targetRef],
-  );
-
   console.log("Current Chat ID prop:", props.currChatId);
-
-
+  
+  
   const {data, error, isLoading, isSuccess} = useFetchChatQuery(props?.currChatId, { skip: !props?.currChatId });
 
   const [fetchMessagesTrigger, { data: chatData , error:chatError , isLoading: chatLoading , isSuccess: chatSuccess, refetch }] = useLazyFetchMessagesQuery();
 
   const [sendChatMutation, { data: sentData, isLoading: isSending, isSuccess: sentSuccess, error: sentError }] = useSendChatMutation();
-
+  
+  console.log("UserChat component rendered", chatData);
   if(chatSuccess){
     console.log("Fetched messages", chatData);
   }
@@ -197,23 +192,6 @@ export default function UserChat(props) {
 
   }, [props?.currChatId]);
 
-  useEffect(()=>{
-    if(open){
-      document.addEventListener("mousedown", (event)=>{
-        if(infoRef.current && !infoRef.current.contains(event.target)){
-          setOpen(false);
-        }
-      })
-    }
-
-    return ()=>{
-      document.removeEventListener("mousedown", (event)=>{
-        if(infoRef.current && !infoRef.current.contains(event.target)){
-          setOpen(false);
-        }
-      })
-    }
-  }, [open]);
 
   return (
     <div className='relative w-full h-[calc(100vh-4rem)] flex flex-col border justify-between'>
@@ -257,12 +235,6 @@ export default function UserChat(props) {
               </h1>
           </div>
         </div>
-              
-        {/* <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"
-          className='size-6 mr-4 cursor-pointer' onClick={handleSetting} aria-label="Open chat settings" role="button">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-        </svg> */}
 
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className='size-6 mr-4 cursor-pointer' onClick={handleInfo}  aria-label="Open chat settings" role="button">
             <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
@@ -273,19 +245,33 @@ export default function UserChat(props) {
         
 
 
-        {/* conversations */}
+        {/* baatien */}
         <div className='bg-gray-300 flex-1 p-4 overflow-y-auto' ref={chatContainerRef}>
           <div ref={targetRef} />
             {
               Object.keys(allMessages).map((date, indx)=>(
-              <div>
-                <div className="text-center text-gray-500 my-3 border rounded" key={indx}>
-                  {convertDateToReadable(date)}
+              <div className='relative'>
+                <div className='flex justify-center sticky top-0'>
+                  <span className="text-center bg-[#665757a6] text-white my-3 rounded-full" style={{fontSize: '0.8rem', padding: '0.3rem 0.4rem'}} key={indx}>
+                    {convertDateToReadable(date)}
+                  </span>
                 </div>
 
                 {
                   allMessages[date].map((msg, idx)=>{
-                    if(msg.senderId === user.id){
+                    //systemGenerated chat
+                    if(msg.message.text.includes('|SystemGenerated|')){
+                      return(
+                       <div className='flex justify-center mb-2'>
+                        <span className="bg-[#665757a6] text-white py-2 rounded-full flex justify-center items-center w-fit gap-1" style={{padding: '0.3rem 0.4rem'}}>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                          </svg>
+                          {msg.message.text.replace('|SystemGenerated|', '').trim()}
+                        </span>
+                      </div>)
+                    }
+                    else if(msg.senderId === user.id){
                       return <div className='py-2 px-5 mb-2 bg-blue-400 w-fit rounded-4xl ml-auto max-w-[45%]'>
                         <div>
                           {msg.message.url ? msg?.message?.url.map((item)=>(
@@ -417,54 +403,9 @@ export default function UserChat(props) {
       </div>
       
       <AnimatePresence>
-        {open && (
-          <motion.div 
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            className='absolute w-full h-[calc(100vh-8rem)] left-0 bottom-0 right-0 bg-white' id='settingDrawer'
-            ref={infoRef}
-          >
-            <div className='w-full h-full'>
-              <div className='w-full h-full flex flex-col items-center justify-center gap-2'>
-                <img src={
-                  data?.chat?.isGroupChat ? 
-                  data?.chat?.photo == 'NA' ? './assets/grp_img.jpg' : data?.chat?.photo
-                  : 
-                  data?.chat?.members?.filter(member => member._id !== user.id)[0]?.profilePhoto
-                } 
-                className='rounded-full object-cover h-15'
-                style={{aspectRatio: '1/1'}}
-                />
-                <h1 className='font-medium text-xl'>
-                  {data?.chat?.isGroupChat ? data?.chat?.grpname : data?.chat?.members?.filter(member => member._id !== user.id)[0]?.name}
-                </h1>
-                <p className='text-center text-gray-600'>
-                  {
-                    data?.chat?.isGroupChat
-                      ? `Created On: ${new Date(data?.chat?.timestamp)
-                          .toLocaleString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            timeZone: "Asia/Kolkata",
-                          })}`
-                      : `Joined On: ${new Date(
-                          data?.chat?.members?.find(member => member._id !== user.id)?.timestamp
-                        ).toLocaleString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          timeZone: "Asia/Kolkata",
-                        })}`
-                  }
-                </p>
-                <p className='text-center text-gray-600'>{!data?.chat?.isGroupChat && data?.chat?.members?.filter(member => member._id !== user.id)[0]?.email}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
+        {open && 
+          <ChatInfo data={data} ref={infoRef} user={user} open={open} setOpen={setOpen} handleInfo={handleInfo} allMessages={allMessages} setAllMessages={setAllMessages}/>
+        }
 
       </AnimatePresence>
 

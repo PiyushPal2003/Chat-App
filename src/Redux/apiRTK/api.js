@@ -25,7 +25,7 @@ const api = createApi({
   reducerPath: "api",
   // baseQuery: fetchBaseQuery({ baseUrl: `http://localhost:5000/api`, credentials: "include" }),
   baseQuery: fetchBaseQueryWithReAuth,
-  tagTypes: ["currentUser", "Users", "Chats", "UserMessages"],
+  tagTypes: ["currentUser", "currentChat", "Users", "Chats", "UserMessages"],
 
   endpoints: (builder) => ({
 
@@ -96,6 +96,19 @@ const api = createApi({
         }
       },
     }),
+    
+    editGroup: builder.mutation({
+      query: (data) => ({
+        url: "/editgroup",
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        body: data,
+        credentials: "include",
+      }),
+      invalidatesTags: ["currentChat", "UserMessages"],
+    }),
 
     createChat: builder.mutation({
       query: (id) => ({
@@ -146,6 +159,7 @@ const api = createApi({
         },
         credentials: "include",
       }),
+      providesTags: ["currentChat"],
     }),
 
     fetchMessages: builder.query({
@@ -178,4 +192,4 @@ const api = createApi({
 })
 
 export default api;
-export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useLazyFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery} = api;
+export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useLazyFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery, useEditGroupMutation} = api;
