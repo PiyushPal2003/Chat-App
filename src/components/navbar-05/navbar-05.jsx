@@ -78,17 +78,41 @@ const Navbar05Page = () => {
     try{
       createChat(id).unwrap()
       .then((res) => {
-        console.log("Chat created successfully:", res);
-        setCurrChat(res.chat._id);
-        toast.success(
-          <div>
+        if(res.status == 200){
+          console.log("Chat created successfully:", res);
+          setCurrChat(res.chat._id);
+          toast.success(
+            <div>
             <p className="font-bold">Chat Created</p>
           </div>,
           {
             duration: 2200,
             position: 'top-center',
           }
-        );
+          );
+        }
+        else if(res.status == 201){
+          toast.error(
+            <div>
+              <p className="font-bold">Chat Exists</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }
+        else if(res.status == 500){
+          toast.error(
+            <div>
+            <p className="font-bold">Internal Server Error</p>
+          </div>,
+          {
+            duration: 2200,
+            position: 'top-center',
+          }
+          );
+        }
       })
       .catch((err) => {
         // toast.error("Failed to create chat");
@@ -98,6 +122,17 @@ const Navbar05Page = () => {
             <div>
               <p className="font-bold">Chat already exists!</p>
               <p>Please check your chat list.</p>
+            </div>,
+            {
+              duration: 2200,
+              position: 'top-center',
+            }
+          );
+        }else{
+          toast.error(
+            <div>
+              <p className="font-bold">Unexpected Error!</p>
+              <p>Please try again after some time.</p>
             </div>,
             {
               duration: 2200,

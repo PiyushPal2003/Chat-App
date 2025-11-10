@@ -118,6 +118,7 @@ export default function UserChat(props) {
   }
 
   function handleInfo(){
+    console.log("changing info open state");
     setOpen((prev)=>!prev);
   }
 
@@ -194,7 +195,7 @@ export default function UserChat(props) {
 
 
   return (
-    <div className='relative w-full h-[calc(100vh-4rem)] flex flex-col border justify-between'>
+    <div className='relative w-full h-[calc(100vh-4rem)] flex flex-col border justify-between overflow-x-hidden'>
       
       {/* head */}
       <div className='w-full h-16 border flex flex-row items-center' id='header'>
@@ -252,7 +253,7 @@ export default function UserChat(props) {
               Object.keys(allMessages).map((date, indx)=>(
               <div className='relative'>
                 <div className='flex justify-center sticky top-0'>
-                  <span className="text-center bg-[#665757a6] text-white my-3 rounded-full" style={{fontSize: '0.8rem', padding: '0.3rem 0.4rem'}} key={indx}>
+                  <span className="text-center font-semibold bg-[#665757a6] text-white my-3 rounded-full" style={{fontSize: '0.8rem', padding: '0.3rem 0.4rem'}} key={indx}>
                     {convertDateToReadable(date)}
                   </span>
                 </div>
@@ -262,7 +263,7 @@ export default function UserChat(props) {
                     //systemGenerated chat
                     if(msg.message.text.includes('|SystemGenerated|')){
                       return(
-                       <div className='flex justify-center mb-2'>
+                       <div className='flex justify-center mb-2 text-[0.8rem]'>
                         <span className="bg-[#665757a6] text-white py-2 rounded-full flex justify-center items-center w-fit gap-1" style={{padding: '0.3rem 0.4rem'}}>
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />

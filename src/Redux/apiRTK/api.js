@@ -107,7 +107,7 @@ const api = createApi({
         body: data,
         credentials: "include",
       }),
-      invalidatesTags: ["currentChat", "UserMessages"],
+      invalidatesTags: ["currentChat"],
     }),
 
     createChat: builder.mutation({
