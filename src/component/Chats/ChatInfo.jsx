@@ -36,8 +36,11 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
         grpdesc: data?.chat?.description,
     });
     const [showEditDialog, setshowEditDialog] = useState(false);
+    const [showAddUserDialog, setshowAddUserDialog] = useState(false);
+    const [mySet, setMySet] = useState(new Set([]));
     const {currChat, setCurrChat} = getSocket();
     const usr = useSelector((state)=>state.auth);
+    const usrListData = useSelector((state)=>state.api.queries['getUser(undefined)'].data.Users);
     const [editGroupChat] = useEditGroupMutation();
     const [createChat, { data: createUserData, error: createuserError, isLoading: createUserLoading, isSuccess: createUserSuccess }] = useCreateChatMutation();
 
@@ -73,6 +76,22 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
             {...prev, [date]: [...prev[date], res.chat]}
           ));
         });
+    }
+
+    function addUsers(e) {
+      const value = e.target.value;
+
+      setMySet(prevSet => {
+        const newSet = new Set(prevSet);
+        if (newSet.has(value)) {
+          newSet.delete(value);
+        } else {
+          newSet.add(value);
+        }
+        return newSet;
+      });
+
+      console.log("Selected users:", mySet);
     }
 
     function messageUser(id) {
@@ -249,7 +268,7 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
                   <DropdownMenuItem onClick={() => setshowEditDialog(true)}>
                     Edit Group Details
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setshowEditDialog(true)}>
+                  <DropdownMenuItem onClick={() => setshowAddUserDialog(true)}>
                     Add Users
                   </DropdownMenuItem>
                   </>
@@ -313,7 +332,7 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
                                   </DropdownMenuItem>
                                   {data?.chat?.admin?.includes(usr?.id) &&
                                   <>
-                                  {data?.chat?.admin?.includes(!member?._id) &&
+                                  {!data?.chat?.admin?.includes(member?._id) &&
                                     <DropdownMenuItem onClick={() => {makeAdmin(member._id, member.name)}}>
                                       Make Admin
                                     </DropdownMenuItem>
@@ -443,6 +462,67 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
                           className="bg-gray-300 px-3 py-1 rounded"
                           type="button"
                           onClick={closeEditDialog}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                            
+                    </form>
+                    </div>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={showAddUserDialog} onOpenChange={(isssOpen) => 
+          {
+            if (!isssOpen) setMySet(new Set());
+            setshowAddUserDialog(isssOpen)
+          }}>
+            <DialogContent className="w-xl">
+              <DialogHeader>
+                <DialogTitle>Add Users</DialogTitle>
+                <DialogDescription>
+                  Add users to your group.
+                </DialogDescription>
+              </DialogHeader>
+                  <div className="flex flex-col items-center mt-4 gap-1">
+                    <form className="w-full flex flex-col items-center" >
+                      {usrListData?.map((ele, i) => (
+                          <>
+                          <label
+                            key={i}
+                            className="flex flex-row h-[2.5rem] items-center my-1 p-1 cursor-pointer"
+                            >
+                            <img
+                              src={`${
+                                ele.profilePhoto.includes("googleusercontent") || ele.profilePhoto == "NA"
+                                  ? "./assets/user_img.jpg"
+                                  : ele.profilePhoto
+                              }`}
+                              className="rounded-full object-cover"
+                              style={{ aspectRatio: "1", height: "95%" }}
+                            />
+                            <p className="ml-2 font-medium text-lg">{ele.name}</p>
+                            <input
+                              type="checkbox"
+                              className="ml-auto h-5/10 aspect-square"
+                              value={ele._id}
+                              onChange={addUsers}
+                              />
+                          </label>
+                          {i != usrListData?.length-1 ? <hr/> : ''}
+                          </>
+                      ))}
+                            
+                      <div className="flex mt-4 gap-2 justify-end w-full">
+                        <button type="submit" className="cursor-pointer bg-black text-white px-3 py-1 rounded">
+                          Confirm
+                        </button>
+                        <button
+                          className="bg-gray-300 px-3 py-1 rounded"
+                          type="button"
+                          onClick={()=>{
+                            setshowAddUserDialog(false);
+                          }}
                         >
                           Cancel
                         </button>

@@ -85,16 +85,16 @@ export default function UserChat(props) {
       .unwrap()
       .then((res) => {
         console.log("Chat sent successfully:", res);
-        const date = new Date(res.chat.timestamp).toDateString();
-        if(!allMessages[date]){
-            // allMessages[date] = [];
-          setAllMessages((prev)=>
-              ({...prev, [date]: []})
-          );
-        }
-        setAllMessages((prev)=>(
-          {...prev, [date]: [...prev[date], res.chat]}
-        ))
+        // const date = new Date(res.chat.timestamp).toDateString();
+        // if(!allMessages[date]){
+        //     // allMessages[date] = [];
+        //   setAllMessages((prev)=>
+        //       ({...prev, [date]: []})
+        //   );
+        // }
+        // setAllMessages((prev)=>(
+        //   {...prev, [date]: [...prev[date], res.chat]}
+        // ))
         // const withNewMessage = [...allMessages, res.chat];
         // const groupedMessage = groupMessagesByDate(withNewMessage);
 
@@ -129,33 +129,33 @@ export default function UserChat(props) {
         fetchMessagesTrigger({id: props?.currChatId, lastMessageId: lastMessage.id}).unwrap()
         .then((res)=>{
           console.log("More messages fetched on scroll:", res);
-          const newMessages = [...res?.messages].reverse();
+          // const newMessages = [...res?.messages].reverse();
 
-              setAllMessages((prev) => {
-                let updated = { ...prev };
+          //     setAllMessages((prev) => {
+          //       let updated = { ...prev };
 
-                newMessages.forEach((msg) => {
-                  const date = new Date(msg.timestamp).toDateString();
-                  if (!updated[date]) {
-                    updated = {[date] : [], ...updated}; 
-                  }
-                  updated[date] = [msg, ...updated[date]];
-                });
+          //       newMessages.forEach((msg) => {
+          //         const date = new Date(msg.timestamp).toDateString();
+          //         if (!updated[date]) {
+          //           updated = {[date] : [], ...updated}; 
+          //         }
+          //         updated[date] = [msg, ...updated[date]];
+          //       });
 
-                return updated;
-              });
+          //       return updated;
+          //     });
 
           // const combinedMessages = [...res?.messages, ...allMessages];
           // const groupedMessage = groupMessagesByDate(combinedMessages);
           // setAllMessages(groupedMessage);
           // setAllMessages((prev)=>[...res?.messages, ...prev]);
 
-          let hasMore = false;
-          res?.messages.length < 8 ? hasMore = false : hasMore = true;
-          setLastMessage({
-            id : res?.messages[0]?._id,
-            more : hasMore
-          });
+          // let hasMore = false;
+          // res?.messages.length < 8 ? hasMore = false : hasMore = true;
+          // setLastMessage({
+          //   id : res?.messages[0]?._id,
+          //   more : hasMore
+          // });
         });
         // setLastMessage((prev)=>({...prev, id: }) );
       }
@@ -163,11 +163,40 @@ export default function UserChat(props) {
     }
   }, [isInView]);
 
+
   useEffect(()=>{
+   if(chatData){
+    const newMessages = [...chatData?.messages];
+
+    setAllMessages((prev) => {
+      let updated = { ...prev };
+
+      newMessages.forEach((msg) => {
+        const date = new Date(msg.timestamp).toDateString();
+        if (!updated[date]) {
+          updated = {[date] : [], ...updated}; 
+        }
+        updated[date] = [msg, ...updated[date]];
+      });
+      let ab = Object.entries(updated).sort(([a], [b]) => new Date(a) - new Date(b));
+      console.log(ab);
+
+      return Object.fromEntries(ab);
+    });
+    let hasMore = false;
+    chatData?.messages.length < 8 ? hasMore = false : hasMore = true;
+    setLastMessage({
+      id : chatData?.messages[0]?._id,
+      more : hasMore
+    });
+    console.log(hasMore);
+
     if(chatContainerRef.current){
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
+   }
   }, [chatData]);
+
 
   useEffect(()=>{
     console.log(props?.currChatId);
@@ -175,19 +204,19 @@ export default function UserChat(props) {
     .then((res)=>{
       console.log("Messages fetched on chat change:", res);
 
-      const groupedMessage = groupMessagesByDate(res?.messages);
+      // const groupedMessage = groupMessagesByDate(res?.messages);
 
-      setAllMessages(groupedMessage);
+      // setAllMessages(groupedMessage);
 
-      setLastMessage(()=>{
-        let hasMore = false;
-        res?.messages.length < 8 ? hasMore = false : hasMore = true;
-        console.log(hasMore)
-        return{
-          id : res?.messages[0]?._id,
-          more : hasMore
-        }
-      });
+      // setLastMessage(()=>{
+      //   let hasMore = false;
+      //   res?.messages.length < 8 ? hasMore = false : hasMore = true;
+      //   console.log(hasMore)
+      //   return{
+      //     id : res?.messages[0]?._id,
+      //     more : hasMore
+      //   }
+      // });
 
     });
 
