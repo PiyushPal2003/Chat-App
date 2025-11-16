@@ -185,7 +185,7 @@ const api = createApi({
         body: data,
         credentials: "include",
       }),
-      invalidatesTags: ["UserMessages", "Chats"],
+      invalidatesTags: ["Chats"],
     }),
   
   }),
