@@ -7,17 +7,19 @@ export function dateFormat(dateString) {
 }
 
 export function groupMessagesByDate(messages){
-    const groupedMessages = {};
-    
-    messages.forEach((msg)=>{
-        const date = new Date(msg.timestamp).toDateString();
-        if(!groupedMessages[date]){
-            groupedMessages[date] = [];
-        }
-        groupedMessages[date].push(msg);
-    });
-
-    return groupedMessages;
+    console.log(messages);
+    if(messages.length > 0){
+        const groupedMessages = {};
+        messages.forEach((msg)=>{
+            const date = new Date(msg.timestamp).toDateString();
+            if(!groupedMessages[date]){
+                groupedMessages[date] = [];
+            }
+            groupedMessages[date].push(msg);
+        });
+        
+        return groupedMessages;
+    }
 }
 
 export function convertDateToReadable(dateString) {

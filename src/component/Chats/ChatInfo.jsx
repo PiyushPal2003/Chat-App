@@ -67,13 +67,13 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
         .then((res) => {
           console.log("Profile edited successfully:", res);
           const date = new Date(res.chat.timestamp).toDateString();
-          if(!allMessages[date]){
-            setAllMessages((prev)=>
-                ({...prev, [date]: []})
-            );
-          }
+          // if(!allMessages[date]){
+            // setAllMessages((prev)=>
+            //     ({...prev, [date]: []})
+            // );
+          // }
           setAllMessages((prev)=>(
-            {...prev, [date]: [...prev[date], res.chat]}
+            [...prev, res.chat]
           ));
         });
     }

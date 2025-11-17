@@ -119,7 +119,6 @@ export default function UserChat({ currChatId }) {
     if (!socket) return;
 
     const handleNewMessage = (msg) => {
-      // 1) Patch RTK cache so other components that use fetchMessages get updated.
       try {
         dispatch(
           api.util.updateQueryData(
@@ -151,6 +150,7 @@ export default function UserChat({ currChatId }) {
 
       // 2) If the message belongs to the current chat, append locally
       if (String(msg.conversationId) === String(currChatId)) {
+        console.log(msg);
         addMessagesDedup([msg], { prepend: false });
         // scroll to bottom only if user is near bottom already
         const el = chatContainerRef.current;
@@ -169,7 +169,6 @@ export default function UserChat({ currChatId }) {
     return () => {
       socket.off("newMessage", handleNewMessage);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, currChatId, addMessagesDedup]);
 
 
@@ -208,7 +207,6 @@ export default function UserChat({ currChatId }) {
   }, [addMessagesDedup]);
 
   // Pagination: load older messages
-  // trigger when user scrolls near top
   const loadOlder = useCallback(() => {
     if (!hasMore || isLoadingOlder || messages.length === 0) return;
     setIsLoadingOlder(true);
@@ -422,7 +420,7 @@ export default function UserChat({ currChatId }) {
         {isLoadingOlder && <div className="text-center mb-2">Loading older messages...</div>}
 
         {/* grouped rendering */}
-        {Object.keys(allMessagesGrouped).map((date) => (
+        {allMessagesGrouped && Object.keys(allMessagesGrouped).map((date) => (
           <div key={date} className="relative">
             <div className="flex justify-center sticky top-0">
               <span
@@ -472,8 +470,11 @@ export default function UserChat({ currChatId }) {
         <div className="rounded-full p-4 border bg-white">
           <div className="flex flex-row items-center">
             {fileUpload.map((file) => (
-              <span key={file.lastModified} className="bg-gray-200 p-1 rounded-md mr-2 mb-2 text-sm flex w-fit cursor-pointer" onClick={() => clearFileInput(file.lastModified)}>
+              <span key={file.lastModified} className="bg-gray-200 p-1 rounded-md mr-2 mb-2 text-sm flex w-fit cursor-pointer">
                 {file.name}
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"  onClick={() => clearFileInput(file.lastModified)}>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
               </span>
             ))}
           </div>
@@ -493,7 +494,7 @@ export default function UserChat({ currChatId }) {
         </div>
       </div>
 
-      <AnimatePresence>{openInfo && <ChatInfo data={chatMeta} user={user} open={openInfo} setOpen={setOpenInfo} />}</AnimatePresence>
+      <AnimatePresence>{openInfo && <ChatInfo data={chatMeta} user={user} open={openInfo} setOpen={setOpenInfo} allMessages={messages} setAllMessages={setMessages} />}</AnimatePresence>
     </div>
   );
 }
