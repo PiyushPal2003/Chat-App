@@ -119,35 +119,8 @@ export default function UserChat({ currChatId }) {
     if (!socket) return;
 
     const handleNewMessage = (msg) => {
-      try {
-        dispatch(
-          api.util.updateQueryData(
-            "fetchMessages",
-            { id: msg.conversationId, lastMessageId: "" }, // match args shape used for initial fetch
-            (draft) => {
-              // draft is the cached array (if any). We will append the new message at the end.
-              // The fetchMessages query returns an object { messages, conversation } in your implementation,
-              // but updateQueryData receives cached value for that query -- adapt accordingly.
-              if (!draft) return;
-              // If your cached shape is { messages, conversation }:
-              if (draft.messages && Array.isArray(draft.messages)) {
-                // ensure not duplicate
-                if (!draft.messages.some((m) => m._id === msg._id)) {
-                  draft.messages.push(msg);
-                }
-              } else {
-                // fallback: if draft is an array
-                if (Array.isArray(draft) && !draft.some((m) => m._id === msg._id)) {
-                  draft.push(msg);
-                }
-              }
-            }
-          )
-        );
-      } catch (err) {
-        console.log('fetchmessages cache not found')
-      }
-
+      console.log("Socket newMessage received:", msg);
+      
       // 2) If the message belongs to the current chat, append locally
       if (String(msg.conversationId) === String(currChatId)) {
         console.log(msg);
@@ -160,6 +133,7 @@ export default function UserChat({ currChatId }) {
           requestAnimationFrame(() => scrollToBottom());
         }
       } else {
+        console.log("Message for another chat:", msg.conversationId);
         // TODO: optionally show toast / badge for other chats
         // e.g., toast('New message in another chat')
       }
@@ -272,17 +246,6 @@ export default function UserChat({ currChatId }) {
       payload.append("receiverId", JSON.stringify(receiverIdArray));
       if (messageText) payload.append("message", messageText);
       for (const f of fileUpload) payload.append("files", f);
-
-      //create temporary message and add it to local state and cache
-      // const file = event.target.files[0];
-      // console.log(file);
-      // if (file) {
-      //   const reader = new FileReader();
-      //   reader.onload = (e) => {
-      //     document.querySelector('#editImg').src = e.target.result;
-      //   };
-      //   reader.readAsDataURL(file);
-      // }
         
       const optimistic = {
         _id: "temp-" + Date.now(),
@@ -297,22 +260,6 @@ export default function UserChat({ currChatId }) {
         status: "pending"
       };
       addMessagesDedup([optimistic], {prepend : false});
-      dispatch(
-        api.util.updateQueryData(
-          "fetchMessages",
-          { id: currChatId, lastMessageId: "" },
-          (draft) => {
-            if (!draft) return;
-            if (draft.messages && Array.isArray(draft.messages)) {
-              if (!draft.messages.some((m) => m._id === optimistic._id)) {
-                draft.messages.push(optimistic);
-              }
-            } else if (Array.isArray(draft)) {
-              if (!draft.some((m) => m._id === optimistic._id)) draft.push(optimistic);
-            }
-          }
-        )
-      );
 
       try {
         const res = await sendChatMutation({ data: payload, id: currChatId }).unwrap();
@@ -320,25 +267,16 @@ export default function UserChat({ currChatId }) {
         // append locally
         // addMessagesDedup([sentMsg], { prepend: false });
         // patch RTK cache (similar to socket handler)
-        try {
-          dispatch(
-            api.util.updateQueryData(
-              "fetchMessages",
-              { id: currChatId, lastMessageId: "" },
-              (draft) => {
-                if (!draft) return;
-                if (draft.messages && Array.isArray(draft.messages)) {
-                  const idx = draft.messages.findIndex((m) => m._id === optimistic._id);
-                  if (idx !== -1) draft.messages[idx] = sentMsg;
-                }
-              }
-            )
-          );
-        } catch (err) {}
-
-        // clear file uploads
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m._id === optimistic._id);
+          if(idx !== -1){
+            const newArr = [...prev];
+            newArr[idx] = sentMsg;
+            return newArr;
+          }
+        })
+        // clear file uploads & after sending, scroll to bottom
         setFileUpload([]);
-        // after sending, scroll to bottom
         requestAnimationFrame(() => scrollToBottom());
       } catch (err) {
         console.error("sendChat failed", err);
@@ -458,6 +396,7 @@ export default function UserChat({ currChatId }) {
                   )}
                   <p>{msg.message?.text ?? ""}</p>
                   <p className="text-xs italic text-right">{dateFormat(msg.timestamp)}</p>
+                  <p className="text-xs italic text-right">{msg.status}</p>
                 </div>
               );
             })}

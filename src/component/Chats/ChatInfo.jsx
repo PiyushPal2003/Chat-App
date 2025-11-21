@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useRef} from 'react'
 import { motion, AnimatePresence } from "framer-motion";
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input";
 import {
@@ -27,20 +27,25 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {getSocket} from "../Context/Socket";
 import toast from 'react-hot-toast';
-import { useEditGroupMutation, useCreateChatMutation } from '../../Redux/apiRTK/api';
+import api, { useEditGroupMutation, useCreateChatMutation } from '../../Redux/apiRTK/api';
 
-const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMessages, setAllMessages}, ref)=>{
+const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMessages})=>{
 
     const [editValues, setEditValues] = useState({
         grpname: data?.chat?.grpname,
         grpdesc: data?.chat?.description,
     });
+    const dispatch = useDispatch();
+    const membersIds = data?.chat?.members.map(m => m._id);
     const [showEditDialog, setshowEditDialog] = useState(false);
     const [showAddUserDialog, setshowAddUserDialog] = useState(false);
     const [mySet, setMySet] = useState(new Set([]));
     const {currChat, setCurrChat} = getSocket();
+    const ref = useRef();
     const usr = useSelector((state)=>state.auth);
-    const usrListData = useSelector((state)=>state.api.queries['getUser(undefined)'].data.Users);
+    const usrData = useSelector((state)=>state.api.queries['getUser(undefined)'].data.Users);
+    const usrListData = usrData?.filter((usr)=>!membersIds.includes(usr._id));
+    console.log(usrListData);
     const [editGroupChat] = useEditGroupMutation();
     const [createChat, { data: createUserData, error: createuserError, isLoading: createUserLoading, isSuccess: createUserSuccess }] = useCreateChatMutation();
 
@@ -66,7 +71,7 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
         .unwrap()
         .then((res) => {
           console.log("Profile edited successfully:", res);
-          const date = new Date(res.chat.timestamp).toDateString();
+          // const date = new Date(res.chat.timestamp).toDateString();
           // if(!allMessages[date]){
             // setAllMessages((prev)=>
             //     ({...prev, [date]: []})
@@ -90,8 +95,58 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
         }
         return newSet;
       });
+      console.log("Selected users:", [...mySet]);
+    }
 
-      console.log("Selected users:", mySet);
+    function addUserSubmit(e){
+      e.preventDefault();
+      const payload = new FormData();
+      payload.append('members', JSON.stringify([...mySet]));
+      payload.append('convoId', data?.chat?._id);
+
+      editGroupChat(payload).unwrap()
+        .then((res) => {
+          console.log("Users added successfully", res.chat);
+          // dispatch(
+          //   api.util.updateQueryData(
+          //     "fetchMessages",
+          //     { id: data?.chat?._id, lastMessageId: "" },
+          //     (draft) => {
+          //       console.log("Draft before update:", draft);
+          //       if (!draft) return;
+          //       draft.messages.push(res.chat);
+          //     }
+          //   )
+          // );
+          setAllMessages((prev)=>(
+            [...prev, res.chat]
+          ));
+        })
+    }
+
+    function removeUser(id){
+      const payload = new FormData();
+      payload.append('rm', id);
+      payload.append('convoId', data?.chat?._id);
+
+      editGroupChat(payload).unwrap()
+        .then((res) => {
+          console.log("User removed successfully", res);
+          // dispatch(
+          //   api.util.updateQueryData(
+          //     "fetchMessages",
+          //     { id: data?.chat?._id, lastMessageId: "" },
+          //     (draft) => {
+          //       console.log("Draft before update:", draft);
+          //       if (!draft) return;
+          //       draft.messages.push(res.chat);
+          //     }
+          //   )
+          // );
+          setAllMessages((prev)=>(
+            [...prev, res.chat]
+          ));
+        })
     }
 
     function messageUser(id) {
@@ -198,15 +253,15 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
             .then((res) => {
               console.log("Profile edited successfully:", res);
 
-              const date = new Date(res.chat.timestamp).toDateString();
-              if(!allMessages[date]){
-                setAllMessages((prev)=>
-                    ({...prev, [date]: []})
-                );
-              }
-              setAllMessages((prev)=>(
-                {...prev, [date]: [...prev[date], res.chat]}
-              ));
+              // const date = new Date(res.chat.timestamp).toDateString();
+              // if(!allMessages[date]){
+              //   setAllMessages((prev)=>
+              //       ({...prev, [date]: []})
+              //   );
+              // }
+              // setAllMessages((prev)=>(
+              //   {...prev, [date]: [...prev[date], res.chat]}
+              // ));
 
               setshowEditDialog(false);
             })
@@ -337,7 +392,7 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
                                       Make Admin
                                     </DropdownMenuItem>
                                   }
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={()=>removeUser(member._id)}>
                                     Remove
                                   </DropdownMenuItem>
                                   </>
@@ -485,8 +540,8 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
                 </DialogDescription>
               </DialogHeader>
                   <div className="flex flex-col items-center mt-4 gap-1">
-                    <form className="w-full flex flex-col items-center" >
-                      {usrListData?.map((ele, i) => (
+                    <form onSubmit={addUserSubmit} className="w-full flex flex-col" >
+                      {usrListData?.length>0 ? ( usrListData.map((ele, i) => (
                           <>
                           <label
                             key={i}
@@ -511,7 +566,10 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
                           </label>
                           {i != usrListData?.length-1 ? <hr/> : ''}
                           </>
-                      ))}
+                      ))
+                      ):
+                      <p>No users to add</p>
+                      }
                             
                       <div className="flex mt-4 gap-2 justify-end w-full">
                         <button type="submit" className="cursor-pointer bg-black text-white px-3 py-1 rounded">
@@ -536,6 +594,6 @@ const ChatInfo = React.memo(React.forwardRef(({data, user, open, setOpen, allMes
       
     </>
   )
-}))
+})
 
 export default ChatInfo;
