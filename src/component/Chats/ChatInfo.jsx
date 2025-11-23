@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSelector, useDispatch } from 'react-redux';
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input";
+import Swal from 'sweetalert2';
 import {
   Dialog,
   DialogContent,
@@ -61,28 +62,6 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
         }
     }
 
-    function makeAdmin(id, name) {
-      const payload = new FormData();
-      payload.append("convoId", data?.chat?._id);
-      payload.append("admin", JSON.stringify({id: id, name: name}));
-      payload.append("user", usr?.name);
-
-      editGroupChat(payload)
-        .unwrap()
-        .then((res) => {
-          console.log("Profile edited successfully:", res);
-          // const date = new Date(res.chat.timestamp).toDateString();
-          // if(!allMessages[date]){
-            // setAllMessages((prev)=>
-            //     ({...prev, [date]: []})
-            // );
-          // }
-          setAllMessages((prev)=>(
-            [...prev, res.chat]
-          ));
-        });
-    }
-
     function addUsers(e) {
       const value = e.target.value;
 
@@ -124,29 +103,84 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
         })
     }
 
+    function makeAdmin(id, name) {
+      const payload = new FormData();
+      payload.append("convoId", data?.chat?._id);
+      payload.append("admin", JSON.stringify({id: id, name: name}));
+      payload.append("user", usr?.name);
+
+      Swal.fire({
+        title: "Are you sure?",
+        text: "You want to promote this user to admin.",
+        icon: "warning",
+        showConfirmButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Confirm",
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          editGroupChat(payload)
+          .unwrap()
+          .then((res) => {
+            console.log("Profile edited successfully:", res);
+            setAllMessages((prev)=>(
+              [...prev, res.chat]
+            ));
+          });
+        }
+      });
+    }
+
     function removeUser(id){
       const payload = new FormData();
       payload.append('rm', id);
       payload.append('convoId', data?.chat?._id);
 
-      editGroupChat(payload).unwrap()
-        .then((res) => {
-          console.log("User removed successfully", res);
-          // dispatch(
-          //   api.util.updateQueryData(
-          //     "fetchMessages",
-          //     { id: data?.chat?._id, lastMessageId: "" },
-          //     (draft) => {
-          //       console.log("Draft before update:", draft);
-          //       if (!draft) return;
-          //       draft.messages.push(res.chat);
-          //     }
-          //   )
-          // );
-          setAllMessages((prev)=>(
-            [...prev, res.chat]
-          ));
-        })
+      Swal.fire({
+        title: "Are you sure?",
+        text: "You want to remove this user from the group.",
+        icon: "warning",
+        showConfirmButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Confirm",
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          editGroupChat(payload).unwrap()
+          .then((res) => {
+            console.log("User removed successfully", res);
+            setAllMessages((prev)=>(
+              [...prev, res.chat]
+            ));
+          })
+        }
+      });
+    }
+
+    function leaveGroup(id){
+      const payload = new FormData();
+      payload.append('leave', id);
+      payload.append('convoId', data?.chat?._id);
+
+      Swal.fire({
+        title: "You are about to leave the group",
+        icon: "warning",
+        showConfirmButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Confirm",
+        cancelButtonText: `Cancel`
+      }).then((result) => {
+        if (result.isConfirmed) {
+          editGroupChat(payload).unwrap()
+          .then((res) => {
+            dispatch(api.util.invalidateTags(['Chats']));
+            console.log("You left the group successfully", res);
+            setAllMessages((prev)=>(
+              [...prev, res.chat]
+            ));
+          })
+        }
+      });
     }
 
     function messageUser(id) {
@@ -252,6 +286,9 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
             .unwrap()
             .then((res) => {
               console.log("Profile edited successfully:", res);
+              setAllMessages((prev)=>(
+                [...prev, res.chat]
+              ));
 
               // const date = new Date(res.chat.timestamp).toDateString();
               // if(!allMessages[date]){
@@ -328,7 +365,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                   </DropdownMenuItem>
                   </>
                   }
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => leaveGroup(usr?.id)}>
                     Leave Group
                   </DropdownMenuItem>
                 </DropdownMenuGroup>

@@ -122,6 +122,7 @@ export default function UserChat({ currChatId }) {
       console.log("Socket newMessage received:", msg);
       
       // 2) If the message belongs to the current chat, append locally
+      dispatch(api.util.invalidateTags(['Chats']));
       if (String(msg.conversationId) === String(currChatId)) {
         console.log(msg);
         addMessagesDedup([msg], { prepend: false });

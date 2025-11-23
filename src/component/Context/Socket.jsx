@@ -43,13 +43,22 @@ export default function Socket({children}) {
       dispatch(onlineUsersList(data));
     });
 
-
-    //new message received
-    socket.on("newMessage", (data) => {
-      console.log("New message received:", data);
-      // dispatch(api.util.invalidateTags(['UserMessages']));
+    socket.on("newChat", (data) => {
+      console.log("New chat created:", data);
       dispatch(api.util.invalidateTags(['Chats']));
     });
+
+    socket.on("updateUser", (data) => {
+      console.log("users updated", data);
+      dispatch(api.util.invalidateTags(['currentChat']));
+    });
+
+    //new message received
+    // socket.on("newMessage", (data) => {
+    //   console.log("New message received:", data);
+    //   // dispatch(api.util.invalidateTags(['UserMessages']));
+    //   dispatch(api.util.invalidateTags(['Chats']));
+    // });
     
     return()=>{
       socket.disconnect();
