@@ -45,7 +45,7 @@ export default function Socket({children}) {
 
     socket.on("newChat", (data) => {
       console.log("New chat created:", data);
-      dispatch(api.util.invalidateTags(['Chats']));
+      dispatch(api.util.invalidateTags(['Chats', 'currentChat']));
     });
 
     socket.on("updateUser", (data) => {

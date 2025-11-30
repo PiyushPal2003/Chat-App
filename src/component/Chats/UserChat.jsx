@@ -41,6 +41,9 @@ export default function UserChat({ currChatId }) {
   const [fetchMessagesTrigger, { isFetching: fetchingMessages }] = useLazyFetchMessagesQuery();
   const [sendChatMutation, { isLoading: sending }] = useSendChatMutation();
 
+  const chatMembers = {};
+  chatMeta?.chat?.members.map((m) =>chatMembers[m._id] = {name:m.name, photo:m.profilePhoto});
+
   // UI bits
   const [openInfo, setOpenInfo] = useState(false);
   const [fileUpload, setFileUpload] = useState([]);
@@ -61,6 +64,8 @@ export default function UserChat({ currChatId }) {
                                 groupMessagesByDate(messages),
                               [messages]);
 
+  console.log(openInfo);
+
 
   const addMessagesDedup = useCallback((incoming = [], { prepend = false } = {}) => {
     // incoming assumed ascending (oldest->newest)
@@ -69,7 +74,7 @@ export default function UserChat({ currChatId }) {
       if (prepend) {
         const toAdd = [];
         for (const msg of incoming) {
-          if (!messageIdsRef.current.has(msg._id)) {
+          if (!messageIdsRef.current.has(msg._id) && (msg.receiverId.includes(user.id) || msg.senderId === user.id)) {
             messageIdsRef.current.add(msg._id);
             toAdd.push(msg);
           }
@@ -79,7 +84,7 @@ export default function UserChat({ currChatId }) {
       else {
         const out = [...prev];
         for (const msg of incoming) {
-          if (!messageIdsRef.current.has(msg._id)) {
+          if (!messageIdsRef.current.has(msg._id) && (msg.receiverId.includes(user.id) || msg.senderId === user.id)) {
             messageIdsRef.current.add(msg._id);
             out.push(msg);
           }
@@ -344,8 +349,9 @@ export default function UserChat({ currChatId }) {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="size-6 mr-4 cursor-pointer"
-          onClick={() => setOpenInfo((p) => !p)}
+          className="size-6 mr-4 cursor-pointer chatinfo-icon"
+          onClick={() => setOpenInfo((p) => {
+            return !p})}
           aria-label="Open chat settings"
           role="button"
         >
@@ -385,6 +391,20 @@ export default function UserChat({ currChatId }) {
               const mine = String(msg.senderId) === String(user.id);
               return (
                 <div key={msg._id} className={`py-2 px-5 mb-2 w-fit rounded-4xl max-w-[45%] ${mine ? "bg-blue-400 ml-auto" : "bg-gray-200"}`}>
+                  {(chatMeta.chat.isGroupChat && !mine) && 
+                  <div className="flex align-center mb-1 gap-2">
+                    <img
+                      src={`${
+                        chatMembers[msg.senderId].photo.includes("googleusercontent") || chatMembers[msg.senderId].photo == "NA"
+                          ? "./assets/user_img.jpg"
+                          : chatMembers[msg.senderId].photo
+                      }`}
+                      className="rounded-full object-cover"
+                      style={{ aspectRatio: "1", height: "1.5rem" }}
+                    />
+                    <p className="text-blue-950">{chatMembers[msg.senderId].name}</p>
+                  </div>
+                  }
                   {/* attachments */}
                   {msg.message?.url?.length > 0 && (
                     <div>
@@ -419,18 +439,23 @@ export default function UserChat({ currChatId }) {
             ))}
           </div>
 
-          <div className="flex flex-row items-center" ref={inputRef}>
-            <label htmlFor="fileInput" className="cursor-pointer ml-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
-              </svg>
-            </label>
-            <input type="file" id="fileInput" className="hidden" onChange={handleFileUpload} multiple />
-            <input type="text" placeholder="Type a message..." className="rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent" onKeyDown={handleSend} />
-            <button id="sendBtn" className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-full ml-2 cursor-pointer" onClick={handleSend}>
-              Send
-            </button>
-          </div>
+          {chatMeta?.chat?.members?.filter((m) => m._id == user.id).length > 0 ?
+            <div className="flex flex-row items-center" ref={inputRef}>
+              <label htmlFor="fileInput" className="cursor-pointer ml-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                </svg>
+              </label>
+              <input type="file" id="fileInput" className="hidden" onChange={handleFileUpload} multiple />
+              <input type="text" placeholder="Type a message..." className="rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent" onKeyDown={handleSend} />
+              <button id="sendBtn" className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-full ml-2 cursor-pointer" onClick={handleSend}>
+                Send
+              </button>
+            </div>
+            : 
+            <div className="p-4 text-center text-red-500 font-semibold">You are no longer a member of this group.</div>
+          }
+
         </div>
       </div>
 

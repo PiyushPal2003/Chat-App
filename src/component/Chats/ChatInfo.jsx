@@ -313,6 +313,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
     if (!open) return;
 
     const handleClickOutside = (event) => {
+      console.log('Click event target:', event.target);
       document.body.style.pointerEvents = 'auto';
       const insideDialogOverlay = event.target.closest('[data-slot="dialog-overlay"]');
       // const insideDialog = dialogRef.current && dialogRef.current.contains(event.target);
@@ -320,8 +321,9 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
       const htmlTagClicked = event.target === document.documentElement
       const clickedInsideDialog = event.target.closest('[role="dialog"]');
       const clickedInsideDropdown = event.target.closest('[role="menu"]');
+      const chatinfoclicked = event.target.className?.baseVal?.includes('chatinfo-icon') 
 
-      if (!clickedInsideDrawer && !htmlTagClicked && !clickedInsideDropdown && !clickedInsideDialog && !insideDialogOverlay) {
+      if (!clickedInsideDrawer && !htmlTagClicked && !clickedInsideDropdown && !clickedInsideDialog && !insideDialogOverlay && !chatinfoclicked) {
           setOpen(false);
       }
     };
