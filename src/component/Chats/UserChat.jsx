@@ -29,11 +29,14 @@ import ChatInfo from "./ChatInfo";
  *   }
  */
 
-export default function UserChat({ currChatId }) {
+export default function UserChat({ currChatId, setLastMessage }) {
   const dispatch = useDispatch();
   const user = useSelector((s) => s.auth);
   const { socket } = getSocket();
   const chatContainerRef = useRef(null);
+
+  const chatCache = useSelector(state => state.api.queries[`getChats(\"${user.id}\")`]);
+  console.log(chatCache);
 
   // RTK Query hooks
   const {
@@ -266,6 +269,7 @@ export default function UserChat({ currChatId }) {
         status: "pending"
       };
       addMessagesDedup([optimistic], {prepend : false});
+      setLastMessage((prev)=> ({...prev, [currChatId]: optimistic}));
 
       try {
         const res = await sendChatMutation({ data: payload, id: currChatId }).unwrap();
@@ -273,6 +277,9 @@ export default function UserChat({ currChatId }) {
         // append locally
         // addMessagesDedup([sentMsg], { prepend: false });
         // patch RTK cache (similar to socket handler)
+
+        // setLastMessage((prev)=> ({...prev, [currChatId]: sentMsg}));
+
         setMessages((prev) => {
           const idx = prev.findIndex((m) => m._id === optimistic._id);
           if(idx !== -1){
@@ -281,6 +288,9 @@ export default function UserChat({ currChatId }) {
             return newArr;
           }
         })
+        api.util.updateQueryData('getChats', `"${user.id}"`, (draft) => {
+          console.log(draft);
+        });
         // clear file uploads & after sending, scroll to bottom
         setFileUpload([]);
         requestAnimationFrame(() => scrollToBottom());
