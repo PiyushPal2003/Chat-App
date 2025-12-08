@@ -4,11 +4,12 @@ import { useGetChatsQuery } from '../../Redux/apiRTK/api'
 import { useSelector } from 'react-redux';
 import {getSocket} from "../Context/Socket";
 import UserChat from './UserChat';
+import {chatListDateTime} from '../../Utilities';
 
 export default function Chats() {
 
     const initialRef = useRef(true);
-    const {currChat, setCurrChat} = getSocket();
+    const {currChat, setCurrChat, typingStatus} = getSocket();
     console.log("Current Chat ID:", currChat);
     const [lastMessage, setLastMessage] = useState({});
     const user = useSelector((state)=>state.auth);
@@ -45,35 +46,35 @@ export default function Chats() {
                                     className='rounded-full object-cover h-4/5'
                                     style={{aspectRatio: '1/1'}}
                                 />
-                                <div className='flex flex-col ml-2'>
+                                <div className='flex flex-col ml-2 w-full'>
                                     <h1 className='font-medium text-lg'>
                                         {chat?.isGroupChat ? chat?.grpname : chat?.members.find((f)=>f._id !== user.id)?.name}
                                     </h1>
-                                    <h1>
+                                    <div className='flex justify-between'>
+                                    <span className='text-sm text-gray-600'>
                                     {
                                         // chat?.lastMessage > 20 ? chat?.lastMessage?.message?.text.slice(0, 20) + "..." : chat?.lastMessage?.message?.text
                                         // lastMessageMap.get(chat._id) == null ? "No messages yet" :
-                                    lastMessage[chat?._id]?.message?.text 
-                                    ?
-                                        lastMessage[chat?._id]?.message?.text?.includes('|SystemGenerated|')
+                                    
+                                        lastMessage[chat?._id]?.message?.includes('|SystemGenerated|')
                                         ? 
-                                        (lastMessage[chat?._id]?.message?.text?.replace('|SystemGenerated|', '').length > 20
+                                        (lastMessage[chat?._id]?.message?.replace('|SystemGenerated|', '').length > 20
                                             ? 
-                                            lastMessage[chat?._id]?.message?.text?.replace('|SystemGenerated|', '').slice(0, 20) + "..."
+                                            lastMessage[chat?._id]?.message?.replace('|SystemGenerated|', '').slice(0, 20) + "..."
                                             :
-                                            lastMessage[chat?._id]?.message?.text?.replace('|SystemGenerated|', '')
+                                            lastMessage[chat?._id]?.message?.replace('|SystemGenerated|', '')
                                         )
                                         :
-                                        (lastMessage[chat?._id]?.message?.text?.length > 20
+                                        (lastMessage[chat?._id]?.message?.length > 20
                                             ? 
-                                            lastMessage[chat?._id]?.message?.text?.slice(0, 20) + "..."
+                                            lastMessage[chat?._id]?.message?.slice(0, 20) + "..."
                                             :
-                                            lastMessage[chat?._id]?.message?.text
+                                            lastMessage[chat?._id]?.message
                                         )
-                                    :
-                                    lastMessage[chat?._id]?.message?.url?.includes
                                     }
-                                    </h1>
+                                    </span>
+                                    <span className='text-sm text-gray-600'>{lastMessage[chat?._id]?.time}</span>
+                                    </div>
                                 </div>
                             </div>
                         ))
@@ -96,8 +97,8 @@ export default function Chats() {
                 setCurrChat(data?.chats[0]?._id);
 
                 for(const cht of data?.chats){
-                    console.log(cht?._id, cht?.lastMessage);
-                    setLastMessage((prev)=> ({...prev, [cht?._id]: cht?.lastMessage}));
+                    setLastMessage((prev)=> ({...prev, [cht?._id]: {message:cht?.lastMessage, time: chatListDateTime(cht?.lastMessageTime)} }));
+                    console.log(cht?._id, cht?.lastMessage, cht?.lastMessageTime);
                 }
 
                 initialRef.current = false;

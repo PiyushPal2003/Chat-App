@@ -15,6 +15,7 @@ export default function Socket({children}) {
   // },[] );
   const dispatch = useDispatch();
   const [currChat, setCurrChat] = useState();
+  const [typingStatus, setTypingStatus] = useState({});
 
   const socket = useMemo(() => io('http://localhost:5000', { withCredentials: true }) ,[] );
 
@@ -53,6 +54,40 @@ export default function Socket({children}) {
       dispatch(api.util.invalidateTags(['currentChat']));
     });
 
+    socket.on("userTyping", (data) => {
+      console.log("User typing:", data);
+      const chatId = data.chatId;
+      const userId = data.userId;
+      if(!chatId) return;
+      
+      setTypingStatus(prev => {
+        const arr = prev[chatId] || [];
+        if (arr.includes(userId)) return {...prev};
+
+        const updated = {
+          ...prev,
+          [chatId]: [...arr, userId]
+        };
+
+        return {...updated};
+      });
+    });
+    socket.on("userStopTyping", (data) => {
+      console.log("User stopped typing:", data);
+      const chatId = data.chatId;
+      const userId = data.userId;
+      if(!chatId) return;
+      setTypingStatus(prev => {
+        const arr = prev[chatId] || [];
+
+        const updated = {
+          ...prev,
+          [chatId]: arr.filter(id => id !== userId)
+        };
+        return {...updated};
+      });
+    });
+
     //new message received
     // socket.on("newMessage", (data) => {
     //   console.log("New message received:", data);
@@ -66,7 +101,7 @@ export default function Socket({children}) {
   }, []);
 
   return (
-    <SocketContext.Provider value={{socket, currChat, setCurrChat}}>
+    <SocketContext.Provider value={{socket, currChat, setCurrChat, typingStatus}}>
       {children}
     </SocketContext.Provider>
   )

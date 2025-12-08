@@ -9,6 +9,7 @@ import api, {
 import { AnimatePresence, motion } from "framer-motion";
 import useElementInView from "../../custom_hooks/Intersection";
 import {
+  chatListDateTime,
   dateFormat,
   groupMessagesByDate,
   convertDateToReadable,
@@ -32,11 +33,9 @@ import ChatInfo from "./ChatInfo";
 export default function UserChat({ currChatId, setLastMessage }) {
   const dispatch = useDispatch();
   const user = useSelector((s) => s.auth);
-  const { socket } = getSocket();
+  const { socket, typingStatus } = getSocket();
   const chatContainerRef = useRef(null);
-
-  const chatCache = useSelector(state => state.api.queries[`getChats(\"${user.id}\")`]);
-  console.log(chatCache);
+  console.log(typingStatus);
 
   // RTK Query hooks
   const {
@@ -264,12 +263,12 @@ export default function UserChat({ currChatId, setLastMessage }) {
         },
         senderId: user.id,
         receiverId: receiverIdArray,
-        conversationId: chatMeta._id,
+        conversationId: chatMeta?.chat?._id,
         timestamp: new Date().toISOString(),
         status: "pending"
       };
       addMessagesDedup([optimistic], {prepend : false});
-      setLastMessage((prev)=> ({...prev, [currChatId]: optimistic}));
+      setLastMessage((prev)=> ({...prev, [currChatId]: {message: optimistic?.message.text || `${optimistic?.message.url.length} files`, time: chatListDateTime(optimistic.timestamp)} }));
 
       try {
         const res = await sendChatMutation({ data: payload, id: currChatId }).unwrap();
@@ -287,19 +286,49 @@ export default function UserChat({ currChatId, setLastMessage }) {
             newArr[idx] = sentMsg;
             return newArr;
           }
-        })
-        api.util.updateQueryData('getChats', `"${user.id}"`, (draft) => {
-          console.log(draft);
         });
         // clear file uploads & after sending, scroll to bottom
         setFileUpload([]);
         requestAnimationFrame(() => scrollToBottom());
-      } catch (err) {
+      } 
+      catch (err) {
         console.error("sendChat failed", err);
+        optimistic.status = 'failed';
+
+        // setMessages((prev) => {
+        //   const idx = prev.findIndex((m) => m._id === optimistic._id);
+        //   if(idx !== -1){
+        //     const newArr = [...prev];
+        //     newArr[idx].status = 'failed';
+        //     return newArr;
+        //   }
+        // });
+
       }
     },
     [sendChatMutation, currChatId, chatMeta, fileUpload, user, addMessagesDedup, dispatch, scrollToBottom]
   );
+
+  const groupOnlineCount = useMemo(() => {
+    return chatMeta?.chat?.members?.reduce(
+        (acc, member) => acc + (member._id !== user.id && user.onlineUsers[member._id] ? 1 : 0),0)
+  }, [chatMeta, user.onlineUsers]);
+
+  let timeout;
+  let typing = false;
+  const handleTyping = useCallback((e) => {
+    if(!typing){
+      typing = true;
+      socket.emit("typing", { chatId: currChatId, userId: user.id });
+    }
+
+    timeout && clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      typing = false;
+      socket.emit("stopTyping", { chatId: currChatId, userId: user.id });
+    }, 1500);
+
+  }, []);
 
 
   return (
@@ -328,19 +357,31 @@ export default function UserChat({ currChatId, setLastMessage }) {
                 : chatMeta?.chat?.members?.filter((member) => member._id !== user.id)[0]?.name}
             </h1>
             <h1 className="text-sm ml-2">
+              
               {/* online count */}
               {chatMeta?.chat?.isGroupChat ? (
                 (() => {
-                  const onlineCount = chatMeta?.chat?.members?.reduce(
-                    (acc, member) => acc + (member._id !== user.id && user.onlineUsers[member._id] ? 1 : 0),
-                    0
-                  );
-                  return onlineCount > 0 ? (
-                    <span className="text-[0.8rem] text-green-500">
-                      {onlineCount} member{onlineCount > 1 ? "s" : ""} online
+                  const onlineCount = groupOnlineCount;
+                  const usersTyping = typingStatus?.[currChatId] || [];
+
+                  return usersTyping.length > 0 ? (
+                    <span className="text-[0.8rem] text-blue-500">
+                      {chatMembers[usersTyping[0]]?.name}{" "}
+                      {usersTyping.length > 1 ? `and ${usersTyping.length - 1} others ` : ""}
+                      typing...
                     </span>
                   ) : (
-                    <span className="text-[0.8rem] text-red-500">No members online</span>
+                    <>
+                      {onlineCount > 0 ? (
+                        <span className="text-[0.8rem] text-green-500">
+                          {onlineCount} member{onlineCount > 1 ? "s" : ""} online
+                        </span>
+                      ) : (
+                        <span className="text-[0.8rem] text-red-500">
+                          No members online
+                        </span>
+                      )}
+                    </>
                   );
                 })()
               ) : user.onlineUsers[
@@ -350,7 +391,10 @@ export default function UserChat({ currChatId, setLastMessage }) {
               ) : (
                 <span className="text-[0.7rem] text-red-500">🔴 Offline</span>
               )}
+
+
             </h1>
+            
           </div>
         </div>
         <svg
@@ -386,7 +430,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
               </span>
             </div>
 
-            {allMessagesGrouped[date].map((msg) => {
+            {allMessagesGrouped[date]?.map((msg) => {
               // system generated
               if (msg.message?.text?.includes?.("|SystemGenerated|")) {
                 return (
@@ -401,7 +445,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
               const mine = String(msg.senderId) === String(user.id);
               return (
                 <div key={msg._id} className={`py-2 px-5 mb-2 w-fit rounded-4xl max-w-[45%] ${mine ? "bg-blue-400 ml-auto" : "bg-gray-200"}`}>
-                  {(chatMeta.chat.isGroupChat && !mine) && 
+                  {(chatMeta?.chat?.isGroupChat && !mine) && 
                   <div className="flex align-center mb-1 gap-2">
                     <img
                       src={`${
@@ -457,7 +501,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
                 </svg>
               </label>
               <input type="file" id="fileInput" className="hidden" onChange={handleFileUpload} multiple />
-              <input type="text" placeholder="Type a message..." className="rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent" onKeyDown={handleSend} />
+              <input type="text" placeholder="Type a message..." className="rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent" onChange={handleTyping} onKeyDown={handleSend} />
               <button id="sendBtn" className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-full ml-2 cursor-pointer" onClick={handleSend}>
                 Send
               </button>
