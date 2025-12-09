@@ -59,7 +59,7 @@ export default function Socket({children}) {
       const chatId = data.chatId;
       const userId = data.userId;
       if(!chatId) return;
-      
+
       setTypingStatus(prev => {
         const arr = prev[chatId] || [];
         if (arr.includes(userId)) return {...prev};
@@ -77,6 +77,7 @@ export default function Socket({children}) {
       const chatId = data.chatId;
       const userId = data.userId;
       if(!chatId) return;
+
       setTypingStatus(prev => {
         const arr = prev[chatId] || [];
 

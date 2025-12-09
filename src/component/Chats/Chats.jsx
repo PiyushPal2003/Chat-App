@@ -14,7 +14,7 @@ export default function Chats() {
     const [lastMessage, setLastMessage] = useState({});
     const user = useSelector((state)=>state.auth);
     const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user?.id, {skip: !user?.id});
-    console.log(lastMessage);
+    // console.log(lastMessage);
 
     function render(){
         if(isLoading){

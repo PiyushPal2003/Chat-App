@@ -36,6 +36,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
   const { socket, typingStatus } = getSocket();
   const chatContainerRef = useRef(null);
   console.log(typingStatus);
+  console.log(currChatId);
 
   // RTK Query hooks
   const {
@@ -66,7 +67,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
                                 groupMessagesByDate(messages),
                               [messages]);
 
-  console.log(openInfo);
+  // console.log(openInfo);
 
 
   const addMessagesDedup = useCallback((incoming = [], { prepend = false } = {}) => {
@@ -316,7 +317,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
 
   let timeout;
   let typing = false;
-  const handleTyping = useCallback((e) => {
+  const handleTyping = () => {
     if(!typing){
       typing = true;
       socket.emit("typing", { chatId: currChatId, userId: user.id });
@@ -328,7 +329,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
       socket.emit("stopTyping", { chatId: currChatId, userId: user.id });
     }, 1500);
 
-  }, []);
+  };
 
 
   return (
