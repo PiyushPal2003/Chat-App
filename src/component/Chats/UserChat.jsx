@@ -14,21 +14,8 @@ import {
   groupMessagesByDate,
   convertDateToReadable,
 } from "../../Utilities";
+import {Spinner} from "@/components/ui/spinner";
 import ChatInfo from "./ChatInfo";
-
-/**
- * Assumptions from your backend:
- * - fetchMessages returns `messages` as an array in ascending order (older -> newer)
- * - each message object shape (example) matches the mongo doc you shared:
- *   {
- *     _id: "6900f2911a596065dba63288",
- *     conversationId: "68c1c4c4f4dd5931aacfe412",
- *     senderId: "68ab067d50edac6392f3909e",
- *     receiverId: ["6897687e5c882cf7692a1767"], // array for group
- *     message: { text: "hello", url: [] },
- *     timestamp: "2025-10-28T16:42:57.970Z"
- *   }
- */
 
 export default function UserChat({ currChatId, setLastMessage }) {
   const dispatch = useDispatch();
@@ -63,11 +50,30 @@ export default function UserChat({ currChatId, setLastMessage }) {
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
 
   // Memoized grouped messages shape used for rendering (date -> array)
-  const allMessagesGrouped = useMemo(() => 
-                                groupMessagesByDate(messages),
-                              [messages]);
+  // const allMessagesGrouped = useMemo(() => {
 
-  // console.log(openInfo);
+  //   const list = [];
+  //   // Use your existing groupMessagesByDate logic
+  //   const grouped = groupMessagesByDate(messages); 
+    
+  //   Object.keys(grouped).forEach(date => {
+  //     // 1. Push a "header" object
+  //     list.push({ type: 'header', value: date, _id: `header-${date}` });
+      
+  //     // 2. Push the messages for that date
+  //     grouped[date].forEach(msg => {
+  //       list.push({ type: 'message', ...msg });
+  //     });
+  //   });
+  //   return list;
+
+  // }, [messages]);
+
+  const allMessagesGrouped = useMemo(() => 
+                              groupMessagesByDate(messages),
+                            [messages]);
+
+  console.log(openInfo);
 
 
   const addMessagesDedup = useCallback((incoming = [], { prepend = false } = {}) => {
@@ -215,6 +221,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
     if (!el) return;
     let throttle = false;
     const onScroll = () => {
+      console.log('scrollHeight :',el.scrollHeight, 'scrollTop :',el.scrollTop, 'clientHeight :',el.clientHeight);
       if (throttle) return;
       throttle = true;
       setTimeout(() => (throttle = false), 150);
@@ -415,9 +422,9 @@ export default function UserChat({ currChatId, setLastMessage }) {
       </div>
 
       {/* messages container */}
-      <div className="bg-gray-300 flex-1 p-4 overflow-y-auto" ref={chatContainerRef}>
+      <div className="bg-gray-300 flex-1 p-4 overflow-y-auto relative" ref={chatContainerRef}>
         {/* optionally show a loading indicator at top when fetching older */}
-        {isLoadingOlder && <div className="text-center mb-2">Loading older messages...</div>}
+        {isLoadingOlder && <div className="text-center mb-2 absolute top-0 left-1/2 z-50 transform -translate-x-1/2"><Spinner className="size-8" /></div>}
 
         {/* grouped rendering */}
         {allMessagesGrouped && Object.keys(allMessagesGrouped).map((date) => (
