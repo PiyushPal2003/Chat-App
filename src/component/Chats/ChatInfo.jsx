@@ -341,11 +341,11 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className='absolute w-full h-[calc(100vh-8rem)] left-0 bottom-0 right-0 bg-white' id='settingDrawer'
+        className='absolute w-full h-[calc(100vh-8rem)] left-0 bottom-0 right-0 bg-white z-20' id='settingDrawer'
         ref={ref}
         // onMouseDown={(e) => {e.stopPropagation();}}
       >
-        <div className='relative w-full h-full p-5 rounded-tl-3xl rounded-tr-3xl bg-[#ebebeb]'> 
+        <div className='relative w-full h-full p-5 rounded-tl-3xl rounded-tr-3xl bg-[#ebebeb]'>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -459,7 +459,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            className='absolute w-full h-[calc(100vh-8rem)] left-0 bottom-0 right-0 bg-white' id='settingDrawer'
+            className='absolute w-full h-[calc(100vh-8rem)] left-0 bottom-0 right-0 bg-white z-20' id='settingDrawer'
             ref={ref}
         >
         <div className='w-full h-full'>
