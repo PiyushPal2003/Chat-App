@@ -124,7 +124,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
       .then((res) => {
         const resMessages = Array.isArray(res?.messages) ? res.messages : [];
         addMessagesDedup(resMessages, { prepend: false });
-        setHasMore((resMessages.length || 0) >= 15);
+        setHasMore(Boolean(res?.hasMore ?? (resMessages.length || 0) >= 15));
       })
       .catch((err) => console.error("Failed to fetch messages:", err));
   }, [currChatId, addMessagesDedup, fetchMessagesTrigger]);
@@ -185,11 +185,17 @@ export default function UserChat({ currChatId, setLastMessage }) {
       .then((res) => {
         const resMessages = Array.isArray(res?.messages) ? res.messages : [];
         prependMessagesWithVirtualIndex(resMessages);
-        setHasMore((resMessages.length || 0) >= 15);
+        setHasMore(Boolean(res?.hasMore ?? (resMessages.length || 0) >= 15));
       })
       .catch((err) => console.error("Error fetching older messages:", err))
       .finally(() => setIsLoadingOlder(false));
   }, [currChatId, fetchMessagesTrigger, hasMore, isLoadingOlder, messages, prependMessagesWithVirtualIndex]);
+
+  const handleAtTopStateChange = useCallback((atTop) => {
+    if (atTop) {
+      handleStartReached();
+    }
+  }, [handleStartReached]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // SEND MESSAGE
@@ -302,11 +308,11 @@ export default function UserChat({ currChatId, setLastMessage }) {
       <Virtuoso
         ref={virtuosoRef}
         className="bg-gray-300 flex-1"
-        style={{ padding: '1rem' }}
         data={flattenedMessages}
         firstItemIndex={firstItemIndex}
         initialTopMostItemIndex={flattenedMessages.length > 0 ? flattenedMessages.length - 1 : 0}
-        startReached={handleStartReached}
+        atTopThreshold={120}
+        atTopStateChange={handleAtTopStateChange}
         followOutput="smooth"
         components={{
           Header: () => isLoadingOlder ? (
@@ -319,25 +325,29 @@ export default function UserChat({ currChatId, setLastMessage }) {
           // Date header
           if (item._type === 'header') {
             return (
-              <div className="flex justify-center sticky top-0 z-10">
-                <span
-                  className="text-center font-semibold bg-[#665757a6] text-white my-3 rounded-full"
-                  style={{ fontSize: "0.8rem", padding: "0.3rem 0.4rem" }}
-                >
-                  {convertDateToReadable(item.date)}
-                </span>
+              <div className="px-4">
+                <div className="flex justify-center sticky top-0 z-10">
+                  <span
+                    className="text-center font-semibold bg-[#665757a6] text-white my-3 rounded-full"
+                    style={{ fontSize: "0.8rem", padding: "0.3rem 0.4rem" }}
+                  >
+                    {convertDateToReadable(item.date)}
+                  </span>
+                </div>
               </div>
             );
           }
           
           // Message bubble
           return (
-            <MessageBubble
-              message={item}
-              isMine={String(item.senderId) === String(user.id)}
-              isGroupChat={chatMeta?.chat?.isGroupChat}
-              senderInfo={chatMembers[item.senderId]}
-            />
+            <div className="px-4">
+              <MessageBubble
+                message={item}
+                isMine={String(item.senderId) === String(user.id)}
+                isGroupChat={chatMeta?.chat?.isGroupChat}
+                senderInfo={chatMembers[item.senderId]}
+              />
+            </div>
           );
         }}
       />
