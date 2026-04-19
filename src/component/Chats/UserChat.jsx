@@ -4,7 +4,10 @@ import { getSocket } from "../Context/Socket";
 import api, {
   useFetchChatQuery,
   useSendChatMutation,
+  useForwardChatMutation,
+  useEditMessageMutation,
   useLazyFetchMessagesQuery,
+  useGetChatsQuery,
 } from "../../Redux/apiRTK/api";
 import { AnimatePresence } from "framer-motion";
 import {
@@ -20,6 +23,7 @@ import ChatHeader from "./ChatHeader";
 import ChatInput from "./ChatInput";
 import MessageBubble from "./MessageBubble";
 import ChatInfo from "./ChatInfo";
+import ForwardMessageModal from "./ForwardMessageModal";
 
 export default function UserChat({ currChatId, setLastMessage }) {
   const dispatch = useDispatch();
@@ -31,6 +35,9 @@ export default function UserChat({ currChatId, setLastMessage }) {
   const { data: chatMeta } = useFetchChatQuery(currChatId, { skip: !currChatId });
   const [fetchMessagesTrigger] = useLazyFetchMessagesQuery();
   const [sendChatMutation] = useSendChatMutation();
+  const [forwardChatMutation] = useForwardChatMutation();
+  const [editMessageMutation] = useEditMessageMutation();
+  const { data: chatsData } = useGetChatsQuery(user?.id, { skip: !user?.id });
 
   // Build a lookup map: memberId -> {name, photo}
   const chatMembers = useMemo(() => {
@@ -40,10 +47,23 @@ export default function UserChat({ currChatId, setLastMessage }) {
     });
     return map;
   }, [chatMeta]);
+  const mentionableMembers = useMemo(
+    () =>
+      (chatMeta?.chat?.members || [])
+        .filter((m) => String(m._id) !== String(user.id))
+        .map((m) => ({ userId: m._id, name: m.name })),
+    [chatMeta, user.id]
+  );
 
   // UI state
   const [openInfo, setOpenInfo] = useState(false);
   const [fileUpload, setFileUpload] = useState([]);
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
+  const [forwardModalOpen, setForwardModalOpen] = useState(false);
+  const [forwardSourceMessage, setForwardSourceMessage] = useState(null);
+  const [isForwarding, setIsForwarding] = useState(false);
+  const [pendingMentions, setPendingMentions] = useState([]);
 
   // Messages state
   const [messages, setMessages] = useState([]);
@@ -105,7 +125,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
       }
     });
 
-  }, []);
+  }, [user.id]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // EFFECTS
@@ -139,9 +159,19 @@ export default function UserChat({ currChatId, setLastMessage }) {
         addMessagesDedup([msg], { prepend: false });
       }
     };
+    const handleMessageEdited = (msg) => {
+      dispatch(api.util.invalidateTags(['Chats']));
+      if (String(msg.conversationId) === String(currChatId)) {
+        setMessages((prev) => prev.map((m) => (String(m._id) === String(msg._id) ? msg : m)));
+      }
+    };
 
     socket.on("newMessage", handleNewMessage);
-    return () => socket.off("newMessage", handleNewMessage);
+    socket.on("messageEdited", handleMessageEdited);
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+      socket.off("messageEdited", handleMessageEdited);
+    };
   }, [socket, currChatId, addMessagesDedup, dispatch]);
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -197,13 +227,99 @@ export default function UserChat({ currChatId, setLastMessage }) {
     }
   }, [handleStartReached]);
 
+  const handleReplyAction = useCallback((message) => {
+    const senderName = String(message?.senderId) === String(user.id)
+      ? "You"
+      : chatMembers[message?.senderId]?.name || "User";
+    const attachmentName = message?.message?.url?.[0]
+      ? decodeURIComponent(message.message.url[0].split("_").pop() || "Attachment")
+      : null;
+    const preview = (message?.message?.text || "").trim()
+      || attachmentName
+      || "Message";
+
+    setReplyTarget({
+      messageId: message?._id,
+      senderName,
+      preview,
+    });
+  }, [chatMembers, user.id]);
+
+  const handleForwardAction = useCallback((message) => {
+    setForwardSourceMessage(message);
+    setForwardModalOpen(true);
+  }, []);
+
+  const handleForwardToChats = useCallback(async (selectedChatIds) => {
+    if (!forwardSourceMessage || !selectedChatIds?.length) return;
+    setIsForwarding(true);
+
+    try {
+      await forwardChatMutation({
+        sourceMessageId: forwardSourceMessage._id,
+        targetConversationIds: selectedChatIds,
+      }).unwrap();
+
+      setForwardModalOpen(false);
+      setForwardSourceMessage(null);
+    } catch (error) {
+      console.error("Forward failed:", error);
+    } finally {
+      setIsForwarding(false);
+    }
+  }, [forwardSourceMessage, forwardChatMutation]);
+
+  const handleEditAction = useCallback((message) => {
+    if (String(message?.senderId) !== String(user.id)) return;
+    const ageMs = Date.now() - new Date(message?.timestamp).getTime();
+    const canEditWithinWindow = ageMs <= 15 * 60 * 1000;
+    const hasAttachment = Array.isArray(message?.message?.url) && message.message.url.length > 0;
+    const isForwarded = Boolean(message?.forwardInfo?.isForwarded) || message?.message?.text?.includes?.("|Forwarded|");
+    if (!canEditWithinWindow || hasAttachment || isForwarded) return;
+    const sourceText = (message?.message?.text || "")
+      .replace("|Forwarded|", "")
+      .trim();
+
+    setEditTarget({
+      messageId: message?._id,
+      text: sourceText,
+      preview: sourceText || "Message",
+    });
+  }, []);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // SEND MESSAGE
   // ─────────────────────────────────────────────────────────────────────────────
 
   const handleSend = useCallback(
     async (messageText) => {
-      if (!messageText && fileUpload.length === 0) return;
+      if (!messageText && fileUpload.length === 0) return false;
+
+      if (editTarget?.messageId) {
+        try {
+          const res = await editMessageMutation({
+            messageId: editTarget.messageId,
+            message: messageText,
+          }).unwrap();
+          const editedMsg = res.chat;
+          setMessages((prev) =>
+            prev.map((m) => (String(m._id) === String(editedMsg._id) ? editedMsg : m))
+          );
+          setLastMessage((prev) => ({
+            ...prev,
+            [currChatId]: {
+              message: editedMsg?.message?.text || prev?.[currChatId]?.message || "",
+              time: chatListDateTime(editedMsg?.timestamp || new Date().toISOString()),
+              isEdited: Boolean(editedMsg?.isEdited),
+            },
+          }));
+          setEditTarget(null);
+          return true;
+        } catch (err) {
+          console.error("editMessage Failed:", err);
+          return false;
+        }
+      }
       // build form data
       const payload = new FormData();
       payload.append("senderId", user.id);
@@ -213,22 +329,35 @@ export default function UserChat({ currChatId, setLastMessage }) {
         .map((m) => m._id) || [];
       payload.append("receiverId", JSON.stringify(receiverIdArray));
       if (messageText) payload.append("message", messageText);
+      if (replyTarget?.messageId) payload.append("replyToId", replyTarget.messageId);
+      if (pendingMentions.length > 0) {
+        payload.append("mentions", JSON.stringify(pendingMentions.map((m) => m.userId)));
+      }
       for (const f of fileUpload) payload.append("files", f);
-        
+         
       const optimistic = {
         _id: "temp-" + Date.now(),
         message: {
           text: messageText ? messageText : undefined,
           url: fileUpload.length>0 ? fileUpload?.map((f)=>f.name) : undefined,
         },
+        replyTo: replyTarget?.messageId
+          ? {
+              messageId: replyTarget.messageId,
+              text: replyTarget.preview || "Message",
+              senderName: replyTarget.senderName || "User",
+            }
+          : undefined,
+        mentions: pendingMentions,
         senderId: user.id,
         receiverId: receiverIdArray,
         conversationId: chatMeta?.chat?._id,
         timestamp: new Date().toISOString(),
+        isEdited: false,
         status: "pending"
       };
       addMessagesDedup([optimistic], {prepend : false});
-      setLastMessage((prev)=> ({...prev, [currChatId]: {message: optimistic?.message.text || `${optimistic?.message.url.length} files`, time: chatListDateTime(optimistic.timestamp)} }));
+      setLastMessage((prev)=> ({...prev, [currChatId]: {message: optimistic?.message.text || `${optimistic?.message.url.length} files`, time: chatListDateTime(optimistic.timestamp), isEdited: false} }));
 
       try {
         const res = await sendChatMutation({ data: payload, id: currChatId }).unwrap();
@@ -249,6 +378,9 @@ export default function UserChat({ currChatId, setLastMessage }) {
           return prev;
         });
         setFileUpload([]);
+        setReplyTarget(null);
+        setPendingMentions([]);
+        return true;
       } catch (err) {
           console.error('sendChat Failed:', err);
           setMessages((prev) => {
@@ -260,9 +392,10 @@ export default function UserChat({ currChatId, setLastMessage }) {
             }
             return prev;
           });
+          return false;
       }
     },
-    [sendChatMutation, currChatId, chatMeta, fileUpload, user, addMessagesDedup, setLastMessage]
+    [sendChatMutation, editMessageMutation, currChatId, chatMeta, fileUpload, user, addMessagesDedup, setLastMessage, editTarget, replyTarget, pendingMentions]
   );
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -344,8 +477,19 @@ export default function UserChat({ currChatId, setLastMessage }) {
               <MessageBubble
                 message={item}
                 isMine={String(item.senderId) === String(user.id)}
+                canEdit={
+                  String(item.senderId) === String(user.id) &&
+                  (Date.now() - new Date(item.timestamp).getTime() <= 15 * 60 * 1000) &&
+                  !(Array.isArray(item?.message?.url) && item.message.url.length > 0) &&
+                  !(Boolean(item?.forwardInfo?.isForwarded) || item?.message?.text?.includes?.("|Forwarded|"))
+                }
                 isGroupChat={chatMeta?.chat?.isGroupChat}
                 senderInfo={chatMembers[item.senderId]}
+                chatMembers={chatMembers}
+                currentUserId={user.id}
+                onReply={handleReplyAction}
+                onForward={handleForwardAction}
+                onEdit={handleEditAction}
               />
             </div>
           );
@@ -359,6 +503,23 @@ export default function UserChat({ currChatId, setLastMessage }) {
         onSend={handleSend}
         onTyping={handleTyping}
         isMember={isMember}
+        isGroupChat={Boolean(chatMeta?.chat?.isGroupChat)}
+        mentionableMembers={mentionableMembers}
+        onMentionsChange={setPendingMentions}
+        replyTarget={replyTarget}
+        onClearReply={() => setReplyTarget(null)}
+        editTarget={editTarget}
+        onClearEdit={() => setEditTarget(null)}
+      />
+
+      <ForwardMessageModal
+        open={forwardModalOpen}
+        onOpenChange={setForwardModalOpen}
+        chats={chatsData?.chats || []}
+        currentUserId={user.id}
+        message={forwardSourceMessage}
+        onForward={handleForwardToChats}
+        isForwarding={isForwarding}
       />
 
       {/* Chat Info Sidebar */}

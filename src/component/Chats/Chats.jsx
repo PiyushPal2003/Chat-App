@@ -15,6 +15,8 @@ export default function Chats() {
     const user = useSelector((state)=>state.auth);
     const { data, error, isLoading, isSuccess, refetch } = useGetChatsQuery(user?.id, {skip: !user?.id});
     // console.log(lastMessage);
+    const cleanLastMessageText = (text = "") =>
+        text.replace("|SystemGenerated|", "").replace("|Forwarded|", "").trim();
 
     function render(){
         if(isLoading){
@@ -53,23 +55,9 @@ export default function Chats() {
                                     <div className='flex justify-between'>
                                     <span className='text-sm text-gray-600'>
                                     {
-                                        // chat?.lastMessage > 20 ? chat?.lastMessage?.message?.text.slice(0, 20) + "..." : chat?.lastMessage?.message?.text
-                                        // lastMessageMap.get(chat._id) == null ? "No messages yet" :
-                                    
-                                        lastMessage[chat?._id]?.message?.includes('|SystemGenerated|')
-                                        ? 
-                                        (lastMessage[chat?._id]?.message?.replace('|SystemGenerated|', '').length > 20
-                                            ? 
-                                            lastMessage[chat?._id]?.message?.replace('|SystemGenerated|', '').slice(0, 20) + "..."
-                                            :
-                                            lastMessage[chat?._id]?.message?.replace('|SystemGenerated|', '')
-                                        )
-                                        :
-                                        (lastMessage[chat?._id]?.message?.length > 20
-                                            ? 
-                                            lastMessage[chat?._id]?.message?.slice(0, 20) + "..."
-                                            :
-                                            lastMessage[chat?._id]?.message
+                                        (((lastMessage[chat?._id]?.isEdited ? "(edited) " : "") + cleanLastMessageText(lastMessage[chat?._id]?.message)).length > 20
+                                            ? ((lastMessage[chat?._id]?.isEdited ? "(edited) " : "") + cleanLastMessageText(lastMessage[chat?._id]?.message)).slice(0, 20) + "..."
+                                            : ((lastMessage[chat?._id]?.isEdited ? "(edited) " : "") + cleanLastMessageText(lastMessage[chat?._id]?.message))
                                         )
                                     }
                                     </span>
@@ -97,7 +85,7 @@ export default function Chats() {
                 setCurrChat(data?.chats[0]?._id);
 
                 for(const cht of data?.chats){
-                    setLastMessage((prev)=> ({...prev, [cht?._id]: {message:cht?.lastMessage, time: chatListDateTime(cht?.lastMessageTime)} }));
+                    setLastMessage((prev)=> ({...prev, [cht?._id]: {message:cht?.lastMessage, time: chatListDateTime(cht?.lastMessageTime), isEdited: Boolean(cht?.lastMessageEdited)} }));
                     console.log(cht?._id, cht?.lastMessage, cht?.lastMessageTime);
                 }
 

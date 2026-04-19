@@ -187,9 +187,37 @@ const api = createApi({
       }),
       // invalidatesTags: ["Chats"],
     }),
+
+    forwardChat: builder.mutation({
+      query: ({ sourceMessageId, targetConversationIds }) => ({
+        url: "/forwardchat",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        body: { sourceMessageId, targetConversationIds },
+        credentials: "include",
+      }),
+      invalidatesTags: ["Chats"],
+    }),
+
+    editMessage: builder.mutation({
+      query: ({ messageId, message }) => ({
+        url: `/editmessage/${messageId}`,
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        body: { message },
+        credentials: "include",
+      }),
+      invalidatesTags: ["Chats"],
+    }),
   
   }),
 })
 
 export default api;
-export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useLazyFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery, useEditGroupMutation} = api;
+export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useForwardChatMutation, useEditMessageMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useLazyFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery, useEditGroupMutation} = api;

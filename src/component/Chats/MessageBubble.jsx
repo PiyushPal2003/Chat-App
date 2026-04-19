@@ -1,5 +1,6 @@
 import React from "react";
 import { dateFormat } from "../../Utilities";
+import MessageActionMenu from "./MessageActionMenu";
 
 /**
  * MessageBubble - Renders a single chat message
@@ -10,7 +11,18 @@ import { dateFormat } from "../../Utilities";
  * - isGroupChat: Boolean - is this a group chat?
  * - senderInfo: {name, photo} of the message sender (for group chats)
  */
-export default function MessageBubble({ message, isMine, isGroupChat, senderInfo }) {
+export default function MessageBubble({
+  message,
+  isMine,
+  canEdit,
+  isGroupChat,
+  senderInfo,
+  chatMembers,
+  currentUserId,
+  onReply,
+  onForward,
+  onEdit,
+}) {
   const msg = message;
 
   // System generated messages (e.g., "User joined the group")
@@ -33,12 +45,49 @@ export default function MessageBubble({ message, isMine, isGroupChat, senderInfo
       ? "./assets/user_img.jpg"
       : senderInfo?.photo;
 
+  const replySenderName = msg.replyTo?.senderId
+    ? (String(msg.replyTo.senderId) === String(currentUserId)
+        ? "You"
+        : chatMembers?.[msg.replyTo.senderId]?.name || "User")
+    : (msg.replyTo?.senderName || "User");
+  const mentionSet = new Set((msg.mentions || []).map((m) => String(m.userId)));
+  const mentionNameMap = (msg.mentions || []).reduce((acc, m) => {
+    acc[m.name] = String(m.userId);
+    return acc;
+  }, {});
+  const renderTextWithMentions = (text) => {
+    if (!text) return null;
+    const parts = text.split(/(@[a-zA-Z0-9_]+)/g);
+    return parts.map((part, idx) => {
+      if (!part.startsWith("@")) return <React.Fragment key={`t-${idx}`}>{part}</React.Fragment>;
+      const mentionName = part.slice(1);
+      const mentionId = mentionNameMap[mentionName];
+      if (mentionId && mentionSet.has(mentionId)) {
+        return (
+          <span key={`m-${idx}`} className="font-semibold text-blue-900">
+            {part}
+          </span>
+        );
+      }
+      return <React.Fragment key={`t-${idx}`}>{part}</React.Fragment>;
+    });
+  };
+
   return (
     <div
-      className={`py-2 px-5 mb-2 w-fit rounded-4xl max-w-[45%] min-w-0 ${
+      className={`py-2 px-5 mb-2 w-fit rounded-4xl max-w-[45%] min-w-0 relative ${
         isMine ? "bg-blue-400 ml-auto" : "bg-gray-200"
       }`}
     >
+      {!msg.message?.text?.includes?.("|SystemGenerated|") && (
+        <MessageActionMenu
+          message={msg}
+          canEdit={canEdit}
+          onReply={onReply}
+          onForward={onForward}
+          onEdit={onEdit}
+        />
+      )}
       {/* Show sender info in group chats (for messages from others) */}
       {isGroupChat && !isMine && senderInfo && (
         <div className="flex align-center mb-1 gap-2 min-w-0">
@@ -69,8 +118,25 @@ export default function MessageBubble({ message, isMine, isGroupChat, senderInfo
         </div>
       )}
 
+      {msg.replyTo?.messageId && (
+        <div className="mb-1 rounded-md bg-black/10 px-2 py-1 border-l-2 border-blue-500">
+          <p className="text-[10px] font-semibold text-blue-900 truncate">{replySenderName}</p>
+          <p className="text-[10px] text-gray-800 truncate">
+            {msg.replyTo?.text?.trim() || "Message"}
+          </p>
+        </div>
+      )}
+
       {/* Message text */}
-      <p className="break-words">{msg.message?.text ?? ""}</p>
+      {(msg.forwardInfo?.isForwarded || msg.message?.text?.includes?.("|Forwarded|")) && (
+        <p className="text-[11px] font-semibold text-gray-700 mb-0.5">Forwarded</p>
+      )}
+      {msg.isEdited && (
+        <p className="text-[11px] font-semibold text-gray-700 mb-0.5">Edited</p>
+      )}
+      <p className="break-words">
+        {renderTextWithMentions((msg.message?.text ?? "").replace("|Forwarded|", "").trim())}
+      </p>
 
       {/* Timestamp */}
       <p className="text-xs italic text-right">{dateFormat(msg.timestamp)}</p>

@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useEffect, useState } from "react";
 
 /**
  * ChatInput - Message input area with file upload support
@@ -15,9 +15,30 @@ export default function ChatInput({
   setFileUpload, 
   onSend, 
   onTyping, 
-  isMember 
+  isMember,
+  replyTarget,
+  onClearReply,
+  editTarget,
+  onClearEdit,
+  isGroupChat,
+  mentionableMembers,
+  onMentionsChange,
 }) {
   const inputRef = useRef();
+  const [messageText, setMessageText] = useState("");
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [showMentionList, setShowMentionList] = useState(false);
+  const [selectedMentions, setSelectedMentions] = useState([]);
+
+  useEffect(() => {
+    if (editTarget?.text !== undefined) {
+      setMessageText(editTarget.text);
+    }
+  }, [editTarget]);
+  
+  useEffect(() => {
+    onMentionsChange?.(selectedMentions);
+  }, [selectedMentions, onMentionsChange]);
 
   // Handle file selection
   const handleFileUpload = (e) => {
@@ -31,32 +52,61 @@ export default function ChatInput({
   };
 
   // Handle send via Enter key or button click
-  const handleSend = useCallback((e) => {
-    let messageText = "";
-    
+  const handleSend = useCallback(async (e) => {
     if (e?.type === "keydown" && e.key !== "Enter") return;
-    
-    if (e?.type === "keydown") {
-      messageText = e.target.value.trim();
-      e.target.value = "";
-    } else if (e?.type === "click") {
-      const input = inputRef.current?.querySelector('input[type="text"]');
-      if (input) {
-        messageText = input.value.trim();
-        input.value = "";
-      }
-    }
+    const text = messageText.trim();
 
     // Pass the text to parent's onSend handler
-    if (messageText || fileUpload.length > 0) {
-      onSend(messageText);
+    if (text || fileUpload.length > 0) {
+      const success = await onSend(text);
+      if (success !== false) {
+        setMessageText("");
+        setSelectedMentions([]);
+        setMentionQuery("");
+        setShowMentionList(false);
+      }
     }
-  }, [fileUpload.length, onSend]);
+  }, [messageText, fileUpload.length, onSend]);
+
+  const extractMentionQuery = (text) => {
+    const match = text.match(/(?:^|\s)@([a-zA-Z0-9_]*)$/);
+    return match ? match[1] : null;
+  };
+
+  const filteredMembers = (mentionableMembers || []).filter((m) => {
+    if (!mentionQuery && mentionQuery !== "") return false;
+    return m.name.toLowerCase().includes(mentionQuery.toLowerCase());
+  });
+
+  const handleTextInput = (value) => {
+    setMessageText(value);
+    if (!isGroupChat) {
+      setShowMentionList(false);
+      return;
+    }
+    const query = extractMentionQuery(value);
+    if (query === null) {
+      setShowMentionList(false);
+      return;
+    }
+    setMentionQuery(query);
+    setShowMentionList(true);
+  };
+
+  const selectMention = (member) => {
+    const updated = messageText.replace(/@([a-zA-Z0-9_]*)$/, `@${member.name} `);
+    setMessageText(updated);
+    setShowMentionList(false);
+    setMentionQuery("");
+    setSelectedMentions((prev) =>
+      prev.some((m) => m.userId === member.userId) ? prev : [...prev, member]
+    );
+  };
 
   // If user is not a member, show restricted message
   if (!isMember) {
     return (
-      <div className="w-full bg-gray-300 relative" id="footer">
+      <div className="w-full bg-gray-300 relative pt-2" id="footer">
         <div className="rounded-full p-4 border bg-white">
           <div className="p-4 text-center text-red-500 font-semibold">
             You are no longer a member of this group.
@@ -67,8 +117,49 @@ export default function ChatInput({
   }
 
   return (
-    <div className="w-full bg-gray-300 relative" id="footer">
+    <div className="w-full bg-gray-300 relative pt-2" id="footer">
       <div className="rounded-full p-4 border bg-white">
+        {replyTarget && (
+          <div className="mb-2 rounded-lg bg-gray-100 px-3 py-2 flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-blue-700 truncate">
+                Replying to {replyTarget.senderName}
+              </p>
+              <p className="text-xs text-gray-700 truncate">
+                {replyTarget.preview}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClearReply}
+              className="text-sm leading-none px-1 rounded hover:bg-gray-200"
+              aria-label="Cancel reply"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {editTarget && (
+          <div className="mb-2 rounded-lg bg-amber-100 px-3 py-2 flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-amber-800 truncate">
+                Editing message
+              </p>
+              <p className="text-xs text-amber-900 truncate">
+                {editTarget.preview}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClearEdit}
+              className="text-sm leading-none px-1 rounded hover:bg-amber-200"
+              aria-label="Cancel edit"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Selected files preview */}
         <div className="flex flex-row items-center flex-wrap">
           {fileUpload.map((file) => (
@@ -130,6 +221,8 @@ export default function ChatInput({
             className="rounded-md w-full h-4/5 ml-2 p-2 outline-none bg-transparent"
             onChange={onTyping}
             onKeyDown={handleSend}
+            value={messageText}
+            onInput={(e) => handleTextInput(e.currentTarget.value)}
           />
 
           {/* Send button */}
@@ -138,9 +231,23 @@ export default function ChatInput({
             className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-full ml-2 cursor-pointer"
             onClick={handleSend}
           >
-            Send
+            {editTarget ? "Save" : "Send"}
           </button>
         </div>
+        {isGroupChat && showMentionList && filteredMembers.length > 0 && (
+          <div className="mt-2 max-h-36 overflow-y-auto rounded-md border bg-white shadow-sm">
+            {filteredMembers.map((member) => (
+              <button
+                key={member.userId}
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                onClick={() => selectMention(member)}
+              >
+                @{member.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
