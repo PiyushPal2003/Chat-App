@@ -188,7 +188,21 @@ export default function ChatInput({
         </div>
 
         {/* Input area */}
-        <div className="flex flex-row items-center" ref={inputRef}>
+        <div className="relative flex flex-row items-center" ref={inputRef}>
+          {isGroupChat && showMentionList && filteredMembers.length > 0 && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 max-h-44 overflow-y-auto rounded-t-xl rounded-b-md border bg-white shadow-lg z-20">
+              {filteredMembers.map((member) => (
+                <button
+                  key={member.userId}
+                  type="button"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 border-b last:border-b-0"
+                  onClick={() => selectMention(member)}
+                >
+                  @{member.name}
+                </button>
+              ))}
+            </div>
+          )}
           {/* File attachment button */}
           <label htmlFor="fileInput" className="cursor-pointer ml-2">
             <svg
@@ -234,20 +248,6 @@ export default function ChatInput({
             {editTarget ? "Save" : "Send"}
           </button>
         </div>
-        {isGroupChat && showMentionList && filteredMembers.length > 0 && (
-          <div className="mt-2 max-h-36 overflow-y-auto rounded-md border bg-white shadow-sm">
-            {filteredMembers.map((member) => (
-              <button
-                key={member.userId}
-                type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-                onClick={() => selectMention(member)}
-              >
-                @{member.name}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
