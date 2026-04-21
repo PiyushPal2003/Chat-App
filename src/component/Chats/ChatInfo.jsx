@@ -1,5 +1,4 @@
 import React, {useEffect, useState, useRef} from 'react'
-import { motion, AnimatePresence } from "framer-motion";
 import { useSelector, useDispatch } from 'react-redux';
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input";
@@ -37,15 +36,15 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
         grpdesc: data?.chat?.description,
     });
     const dispatch = useDispatch();
-    const membersIds = data?.chat?.members.map(m => m._id);
+    const membersIds = (data?.chat?.members || []).map((m) => m._id);
     const [showEditDialog, setshowEditDialog] = useState(false);
     const [showAddUserDialog, setshowAddUserDialog] = useState(false);
     const [mySet, setMySet] = useState(new Set([]));
     const {currChat, setCurrChat} = getSocket();
     const ref = useRef();
     const usr = useSelector((state)=>state.auth);
-    const usrData = useSelector((state)=>state.api.queries['getUser(undefined)'].data.Users);
-    const usrListData = usrData?.filter((usr)=>!membersIds.includes(usr._id));
+    const usrData = useSelector((state) => state.api?.queries?.['getUser(undefined)']?.data?.Users || []);
+    const usrListData = usrData.filter((usr) => !membersIds.includes(usr._id));
     console.log(usrListData);
     const [editGroupChat] = useEditGroupMutation();
     const [createChat, { data: createUserData, error: createuserError, isLoading: createUserLoading, isSuccess: createUserSuccess }] = useCreateChatMutation();
@@ -336,17 +335,21 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
     <>
     
     {data?.chat?.isGroupChat ? 
-      (<motion.div
-      initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className='absolute w-full h-[calc(100vh-8rem)] left-0 bottom-0 right-0 bg-white z-20' id='settingDrawer'
+      (<div
+        className='w-full h-full bg-white' id='settingDrawer'
         ref={ref}
         // onMouseDown={(e) => {e.stopPropagation();}}
       >
-        <div className='relative w-full h-full p-5 rounded-tl-3xl rounded-tr-3xl bg-[#ebebeb]'>
-            
+        <div className='relative w-full h-full p-5 bg-[#ebebeb] overflow-y-auto overflow-x-hidden'>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="absolute top-4 left-3 rounded-full px-2 py-1 text-sm bg-white/80 hover:bg-white z-30"
+              aria-label="Close chat info"
+            >
+              ✕
+            </button>
+             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                   <button className="absolute top-5 right-5 flex items-center px-2 py-1 rounded cursor-pointer ml-auto text-xs" type="button">
@@ -374,15 +377,15 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
               </DropdownMenuContent>
             </DropdownMenu>
         
-            <div className='md:h-[12%] my-5 flex flex-col md:flex-row items-center justify-center gap-5'>
+            <div className='md:h-[12%] my-5 flex flex-col md:flex-row items-center justify-center gap-5 min-w-0'>
               <img src={
                 data?.chat?.photo == 'NA' ? './assets/grp_img.jpg' : data?.chat?.photo
               } 
               className='rounded-full object-cover h-22 md:h-full'
               style={{aspectRatio: '1/1'}}
             />
-              <div className='flex flex-col items-center md:items-start gap-1'>
-                <h1 className='font-medium text-xl'>{data?.chat?.grpname}</h1>
+              <div className='flex flex-col items-center md:items-start gap-1 min-w-0 w-full'>
+                <h1 className='font-medium text-xl text-center md:text-left truncate w-full'>{data?.chat?.grpname}</h1>
                 <h1 className='text-md'>Group ∙ {data?.chat?.members?.length} members</h1>
                 {/* <h3>Description: {data?.chat?.description || '- - -'}</h3> */}
                 <h1 className='text-center text-sm text-gray-600 italic'>Created On:{' '}
@@ -396,19 +399,19 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                 </h1>
               </div>
             </div>
-            {data?.chat?.description && <h1 className='text-center'><span className='font-semibold'>Description</span>: {data?.chat?.description}</h1>}
+            {data?.chat?.description && <h1 className='text-center break-words'><span className='font-semibold'>Description</span>: {data?.chat?.description}</h1>}
 
             <div>
                 <h1 className='text-start font-semibold'>Group Members:</h1>
-                <div className='grid grid-cols-1 mt-2 md:m-0 md:grid-cols-2 lg:grid-cols-3 gap-1 md:gap-3'>
+                <div className='grid grid-cols-1 mt-2 md:m-0 gap-2'>
                     {data?.chat?.members?.map((member, index)=>(
-                        <div key={index} className='relative flex justify-between items-center rounded-lg bg-[#d8d8d8]'>
-                            <div className='flex items-center gap-3 my-0 md:my-1 p-2'>
+                        <div key={index} className='relative flex justify-between items-center rounded-lg bg-[#d8d8d8] min-w-0 overflow-hidden'>
+                            <div className='flex items-center gap-3 my-0 md:my-1 p-2 min-w-0'>
                               <img src={member.profilePhoto=='NA' ? './assets/user_img.jpg' : member.profilePhoto} className='h-12 rounded-full object-cover' style={{aspectRatio: '1/1'}} />
-                              <div className='flex flex-col'>
-                                  <h1 className=''>{member.name}</h1>
-                                  <h1 className='text-sm'>{member.email}</h1>
-                                  <h1 className='text-sm'>{member.desc || ''}</h1>
+                              <div className='flex flex-col min-w-0'>
+                                  <h1 className='truncate'>{member.name}</h1>
+                                  <h1 className='text-sm truncate'>{member.email}</h1>
+                                  <h1 className='text-sm break-words'>{member.desc || ''}</h1>
                               </div>
                             </div>
 
@@ -440,7 +443,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                               </DropdownMenuContent>
                             </DropdownMenu>}
 
-                            {data?.chat?.admin?.includes(member._id) && <span className='absolute top-2 right-2 p-1 rounded-md font-semibold text-xs bg-amber-200'>Admin</span>}
+                            {data?.chat?.admin?.includes(member._id) && <span className='absolute top-1 right-1 px-2 py-0.5 rounded-md font-semibold text-xs bg-amber-200'>Admin</span>}
                         </div>
                     ))
                     }
@@ -452,18 +455,22 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
             </div>
     
         </div>
-      </motion.div>)
+      </div>)
         :
-      (<motion.div 
-        initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            className='absolute w-full h-[calc(100vh-8rem)] left-0 bottom-0 right-0 bg-white z-20' id='settingDrawer'
+      (<div 
+            className='w-full h-full bg-white' id='settingDrawer'
             ref={ref}
         >
-        <div className='w-full h-full'>
-            <div className='w-full h-full flex flex-col items-center justify-center gap-2'>
+        <div className='relative w-full h-full bg-[#ebebeb]'>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="absolute top-4 left-3 rounded-full px-2 py-1 text-sm bg-white/80 hover:bg-white z-30"
+              aria-label="Close chat info"
+            >
+              ✕
+            </button>
+            <div className='w-full h-full flex flex-col items-center justify-center gap-2 p-5'>
               <img src={
                 data?.chat?.members?.filter(member => member._id !== user.id)[0]?.profilePhoto == 'NA' ? './assets/user_img.jpg' : data?.chat?.members?.filter(member => member._id !== user.id)[0]?.profilePhoto
               } 
@@ -488,7 +495,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
               <p className='text-center text-gray-600'>{data?.chat?.members?.filter(member => member._id !== user.id)[0]?.email}</p>
             </div>
         </div>
-      </motion.div>)
+      </div>)
       }
 
 

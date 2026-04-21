@@ -9,13 +9,13 @@ import api, {
   useLazyFetchMessagesQuery,
   useGetChatsQuery,
 } from "../../Redux/apiRTK/api";
-import { AnimatePresence } from "framer-motion";
 import {
   chatListDateTime,
   groupMessagesByDate,
   convertDateToReadable,
 } from "../../Utilities";
 import { Spinner } from "@/components/ui/spinner";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Virtuoso } from "react-virtuoso";
 
 // Sub-components
@@ -426,7 +426,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] flex flex-col border justify-between overflow-x-hidden">
+    <div className="relative w-full h-full flex flex-col border-l justify-between overflow-x-hidden">
       {/* Header */}
       <ChatHeader
         chatMeta={chatMeta}
@@ -523,8 +523,8 @@ export default function UserChat({ currChatId, setLastMessage }) {
       />
 
       {/* Chat Info Sidebar */}
-      <AnimatePresence>
-        {openInfo && (
+      <Sheet open={openInfo} onOpenChange={setOpenInfo}>
+        <SheetContent side="right" className="w-[88%] md:w-[420px] p-0 sm:max-w-none [&>button]:hidden">
           <ChatInfo
             data={chatMeta}
             user={user}
@@ -533,8 +533,8 @@ export default function UserChat({ currChatId, setLastMessage }) {
             allMessages={messages}
             setAllMessages={setMessages}
           />
-        )}
-      </AnimatePresence>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
