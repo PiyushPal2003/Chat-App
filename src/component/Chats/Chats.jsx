@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useGetChatsQuery } from "../../Redux/apiRTK/api";
+import { useGetChatsQuery, useGetUserQuery, useCreateChatMutation, useCreateGroupChatMutation } from "../../Redux/apiRTK/api";
 import { useSelector } from "react-redux";
 import { getSocket } from "../Context/Socket";
 import UserChat from "./UserChat";
@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEditProfileMutation } from "../../Redux/apiRTK/api";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function Chats() {
   const navigate = useNavigate();
@@ -37,9 +38,15 @@ export default function Chats() {
   const [editMode, setEditMode] = useState(false);
   const [profilePreview, setProfilePreview] = useState(null);
   const [editValues, setEditValues] = useState({ name: "", desc: "" });
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newGroupMode, setNewGroupMode] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState(new Set());
   const user = useSelector((state) => state.auth);
   const [editProfile] = useEditProfileMutation();
+  const [createChat] = useCreateChatMutation();
+  const [createGroupChat] = useCreateGroupChatMutation();
   const { data, error, isLoading, isSuccess } = useGetChatsQuery(user?.id, { skip: !user?.id });
+  const { data: userData } = useGetUserQuery(undefined, { skip: !user?.id });
 
   const cleanLastMessageText = (text = "") =>
     text.replace("|SystemGenerated|", "").replace("|Forwarded|", "").trim();
@@ -108,6 +115,61 @@ export default function Chats() {
   const logout = () => {
     localStorage.removeItem("chatAccessToken");
     navigate("/auth");
+  };
+
+  const selectableUsers = useMemo(
+    () => (userData?.Users || []).filter((u) => u._id !== user?.id),
+    [userData?.Users, user?.id]
+  );
+
+  const toggleGroupUser = (id) => {
+    setSelectedUsers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const createUserChat = async (id) => {
+    try {
+      const res = await createChat(id).unwrap();
+      setCurrChat(res?.chat?._id);
+      setShowAddDialog(false);
+      setNewGroupMode(false);
+      setSelectedUsers(new Set());
+    } catch (err) {
+      console.error("Create chat failed:", err);
+    }
+  };
+
+  const createGroup = async (e) => {
+    e.preventDefault();
+    const grpName = e.currentTarget.grp_name.value.trim();
+    const grpDesc = e.currentTarget.grp_desc.value.trim();
+    const grpPhoto = e.currentTarget.grpPhoto.files?.[0];
+    if (!grpName) return;
+
+    const members = new Set(selectedUsers);
+    members.add(user.id);
+
+    const payload = new FormData();
+    payload.append("isGroupChat", true);
+    payload.append("name", grpName);
+    payload.append("adminId", user.id);
+    payload.append("members", JSON.stringify(Array.from(members)));
+    if (grpDesc) payload.append("grpDesc", grpDesc);
+    if (grpPhoto) payload.append("grpPhoto", grpPhoto);
+
+    try {
+      const res = await createGroupChat(payload).unwrap();
+      setCurrChat(res?.chat?._id);
+      setShowAddDialog(false);
+      setNewGroupMode(false);
+      setSelectedUsers(new Set());
+    } catch (err) {
+      console.error("Create group failed:", err);
+    }
   };
 
   const renderChatList = (isMobile = false) => (
@@ -192,17 +254,25 @@ export default function Chats() {
                     Profile & Settings
                   </DropdownMenuItem>
                 </DialogTrigger>
-                <DialogContent className="w-xl">
+                <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
                   <DialogHeader>
-                    <DialogTitle>Profile & Settings</DialogTitle>
-                    <DialogDescription>
-                      <div className="flex flex-col items-center mt-4 gap-1">
-                        <form className="w-full flex flex-col items-center" onSubmit={handleProfileSave}>
+                    <DialogTitle className="px-6 pt-6">Profile & Settings</DialogTitle>
+                    <DialogDescription className="px-6">
+                      Manage your account info and profile photo.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    className="px-6 pb-6"
+                  >
+                        <form className="w-full flex flex-col gap-4" onSubmit={handleProfileSave}>
                           {editMode ? (
                             <>
-                              <div className="flex items-center justify-center flex-col">
-                                <img src={profilePhotoSrc} className="rounded-full object-cover w-20 h-20" alt="profile" />
-                                <Label htmlFor="profile-photo" className="cursor-pointer text-sm hover:underline">
+                              <div className="flex items-center justify-center flex-col gap-2">
+                                <img src={profilePhotoSrc} className="rounded-full object-cover w-20 h-20 ring-2 ring-white shadow" alt="profile" />
+                                <Label htmlFor="profile-photo" className="cursor-pointer text-sm px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200">
                                   Update Profile Photo
                                 </Label>
                                 <input
@@ -214,22 +284,22 @@ export default function Chats() {
                                 />
                               </div>
 
-                              <div className="items-center w-6/10">
+                              <div className="w-full">
                                 <Label htmlFor="editName">Name:</Label>
                                 <Input
                                   name="name"
-                                  className="border rounded p-2"
+                                  className="border rounded p-2 mt-1"
                                   value={editValues.name || ""}
                                   id="editName"
                                   onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
                                 />
                               </div>
 
-                              <div className="items-center w-6/10">
+                              <div className="w-full">
                                 <Label htmlFor="editDesc">Description:</Label>
                                 <Input
                                   name="desc"
-                                  className="border rounded p-2"
+                                  className="border rounded p-2 mt-1"
                                   value={editValues.desc || ""}
                                   placeholder="Enter Description"
                                   id="editDesc"
@@ -238,20 +308,20 @@ export default function Chats() {
                               </div>
                             </>
                           ) : (
-                            <>
-                              <img src={profilePhotoSrc} className="rounded-full object-cover w-24 h-24" alt="profile" />
-                              <p className="text-lg">Name: {user?.name}</p>
-                              <p className="text-lg">Description: {user?.desc ? user?.desc : "- -"}</p>
-                            </>
+                            <div className="flex flex-col items-center gap-2 py-2">
+                              <img src={profilePhotoSrc} className="rounded-full object-cover w-24 h-24 ring-2 ring-white shadow" alt="profile" />
+                              <p className="text-base md:text-lg text-center"><span className="font-medium">Name:</span> {user?.name}</p>
+                              <p className="text-base md:text-lg text-center break-words"><span className="font-medium">Description:</span> {user?.desc ? user?.desc : "- -"}</p>
+                            </div>
                           )}
 
                           {editMode ? (
-                            <div className="flex mt-4 gap-2 justify-end w-full">
-                              <button type="submit" className="cursor-pointer bg-black text-white px-3 py-1 rounded">
+                            <div className="flex mt-2 gap-2 justify-end w-full">
+                              <button type="submit" className="cursor-pointer bg-black text-white px-4 py-2 rounded-md">
                                 Save
                               </button>
                               <button
-                                className="bg-gray-300 px-3 py-1 rounded"
+                                className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md"
                                 type="button"
                                 onClick={() => {
                                   setEditMode(false);
@@ -265,16 +335,14 @@ export default function Chats() {
                           ) : (
                             <button
                               onClick={() => setEditMode(true)}
-                              className="flex items-center mt-4 bg-black text-white px-3 py-1 rounded cursor-pointer ml-auto"
+                              className="flex items-center mt-2 bg-black text-white px-4 py-2 rounded-md cursor-pointer ml-auto"
                               type="button"
                             >
                               Edit
                             </button>
                           )}
                         </form>
-                      </div>
-                    </DialogDescription>
-                  </DialogHeader>
+                  </motion.div>
                 </DialogContent>
               </Dialog>
 
@@ -283,7 +351,115 @@ export default function Chats() {
           </DropdownMenu>
           <h2 className="font-semibold truncate">LetsChat</h2>
         </div>
-        {/* <button type="button" className="text-gray-600 text-xs">Chats</button> */}
+        <Dialog
+          open={showAddDialog}
+          onOpenChange={(isOpen) => {
+            setShowAddDialog(isOpen);
+            if (!isOpen) {
+              setNewGroupMode(false);
+              setSelectedUsers(new Set());
+            }
+          }}
+        >
+          <DialogTrigger asChild>
+            <button type="button" className="text-gray-700 p-1 rounded hover:bg-white mr-8 sm:mr-0" aria-label="Start new chat">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="size-6"
+              >
+                <path d="M10 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM1.615 16.428a1.224 1.224 0 0 1-.569-1.175 6.002 6.002 0 0 1 11.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 0 1 7 18a9.953 9.953 0 0 1-5.385-1.572ZM16.25 5.75a.75.75 0 0 0-1.5 0v2h-2a.75.75 0 0 0 0 1.5h2v2a.75.75 0 0 0 1.5 0v-2h2a.75.75 0 0 0 0-1.5h-2v-2Z" />
+              </svg>
+            </button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{newGroupMode ? "Create Group" : "Select user to chat with"}</DialogTitle>
+              <DialogDescription asChild>
+                <div className="mt-2">
+                  <AnimatePresence mode="wait" initial={false}>
+                    {!newGroupMode ? (
+                    <motion.div
+                      key="select-user"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.22, ease: "easeOut" }}
+                    >
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 p-2 rounded hover:bg-gray-100 text-left"
+                        onClick={() => setNewGroupMode(true)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6">
+                          <path fillRule="evenodd" d="M8.25 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z" clipRule="evenodd" />
+                          <path d="M5.082 14.254a8.287 8.287 0 0 0-1.308 5.135 9.687 9.687 0 0 1-1.764-.44l-.115-.04a.563.563 0 0 1-.373-.487l-.01-.121a3.75 3.75 0 0 1 3.57-4.047ZM20.226 19.389a8.287 8.287 0 0 0-1.308-5.135 3.75 3.75 0 0 1 3.57 4.047l-.01.121a.563.563 0 0 1-.373.486l-.115.04c-.567.2-1.156.349-1.764.441Z" />
+                        </svg>
+                        <span className="font-medium">New Group</span>
+                      </button>
+                      <div className="max-h-72 overflow-y-auto mt-2">
+                        {selectableUsers.map((ele) => (
+                          <button
+                            key={ele._id}
+                            type="button"
+                            className="flex w-full items-center gap-2 p-2 rounded hover:bg-gray-100 text-left"
+                            onClick={() => createUserChat(ele._id)}
+                          >
+                            <img
+                              src={ele.profilePhoto?.includes("googleusercontent") || ele.profilePhoto === "NA" ? "./assets/user_img.jpg" : ele.profilePhoto}
+                              className="rounded-full object-cover h-9 w-9"
+                              alt={ele.name}
+                            />
+                            <span className="font-medium">{ele.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.form
+                      key="create-group"
+                      onSubmit={createGroup}
+                      initial={{ opacity: 0, x: 14 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -12 }}
+                      transition={{ duration: 0.24, ease: "easeOut" }}
+                    >
+                      <div className="max-h-52 overflow-y-auto">
+                        {selectableUsers.map((ele) => (
+                          <label key={ele._id} className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 cursor-pointer">
+                            <img
+                              src={ele.profilePhoto?.includes("googleusercontent") || ele.profilePhoto === "NA" ? "./assets/user_img.jpg" : ele.profilePhoto}
+                              className="rounded-full object-cover h-9 w-9"
+                              alt={ele.name}
+                            />
+                            <span className="flex-1">{ele.name}</span>
+                            <input type="checkbox" checked={selectedUsers.has(ele._id)} onChange={() => toggleGroupUser(ele._id)} />
+                          </label>
+                        ))}
+                      </div>
+                      <Label htmlFor="grp_name">Group Name</Label>
+                      <input id="grp_name" name="grp_name" className="w-full border rounded p-2 mt-1 mb-2" placeholder="Enter group name..." required />
+                      <Label htmlFor="grp_desc">Group Description</Label>
+                      <input id="grp_desc" name="grp_desc" className="w-full border rounded p-2 mt-1 mb-2" placeholder="Enter group description..." />
+                      <Label htmlFor="grp-photo" className="cursor-pointer text-sm hover:underline">Upload Group Photo</Label>
+                      <input type="file" id="grp-photo" name="grpPhoto" className="hidden" />
+                      <div className="mt-3 flex gap-2 justify-end">
+                        <button type="button" className="px-3 py-1 bg-gray-300 rounded" onClick={() => setNewGroupMode(false)}>
+                          Back
+                        </button>
+                        <button type="submit" className="px-3 py-1 bg-green-500 text-white rounded" disabled={selectedUsers.size < 2}>
+                          Create
+                        </button>
+                      </div>
+                    </motion.form>
+                  )}
+                  </AnimatePresence>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
       </div>
       <div className="rounded-lg bg-white px-3 py-2">
         <input

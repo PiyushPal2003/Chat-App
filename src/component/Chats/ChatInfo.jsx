@@ -28,6 +28,7 @@ import {
 import {getSocket} from "../Context/Socket";
 import toast from 'react-hot-toast';
 import api, { useEditGroupMutation, useCreateChatMutation } from '../../Redux/apiRTK/api';
+import { motion } from "framer-motion";
 
 const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMessages})=>{
 
@@ -110,7 +111,8 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
 
       Swal.fire({
         title: "Are you sure?",
-        text: "You want to promote this user to admin.",
+        // text: "You want to promote this user to admin.",
+        html: `<p>You want to promote <strong>${name}</strong> to admin.</p>`,
         icon: "warning",
         showConfirmButton: true,
         showCancelButton: true,
@@ -312,6 +314,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
     if (!open) return;
 
     const handleClickOutside = (event) => {
+      if (!(event.target instanceof Element)) return;
       console.log('Click event target:', event.target);
       document.body.style.pointerEvents = 'auto';
       const insideDialogOverlay = event.target.closest('[data-slot="dialog-overlay"]');
@@ -320,9 +323,10 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
       const htmlTagClicked = event.target === document.documentElement
       const clickedInsideDialog = event.target.closest('[role="dialog"]');
       const clickedInsideDropdown = event.target.closest('[role="menu"]');
+      const clickedInsideSwal = event.target.closest('.swal2-container, .swal2-popup');
       const chatinfoclicked = event.target.className?.baseVal?.includes('chatinfo-icon') 
 
-      if (!clickedInsideDrawer && !htmlTagClicked && !clickedInsideDropdown && !clickedInsideDialog && !insideDialogOverlay && !chatinfoclicked) {
+      if (!clickedInsideDrawer && !htmlTagClicked && !clickedInsideDropdown && !clickedInsideDialog && !insideDialogOverlay && !clickedInsideSwal && !chatinfoclicked) {
           setOpen(false);
       }
     };
@@ -501,24 +505,29 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
 
     
         <Dialog open={showEditDialog} onOpenChange={(issOpen) => {setshowEditDialog(issOpen)}}>
-            <DialogContent className="w-xl">
+            <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
               <DialogHeader>
-                <DialogTitle>Update Chat Details</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="px-6 pt-6">Update Chat Details</DialogTitle>
+                <DialogDescription className="px-6">
                   Update your group's name, description, and profile photo.
                 </DialogDescription>
               </DialogHeader>
-                  <div className="flex flex-col items-center mt-4 gap-1">
-                    <form className="w-full flex flex-col items-center" onSubmit={grpEditSubmit}>
-                      <div className="flex items-center justify-center flex-col">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    className="px-6 pb-6"
+                  >
+                    <form className="w-full flex flex-col gap-4" onSubmit={grpEditSubmit}>
+                      <div className="flex items-center justify-center flex-col gap-2">
                         <img
                           src={
                             data?.chat?.photo == 'NA' ? './assets/grp_img.jpg' : data?.chat?.photo
                           }
-                          className="rounded-full object-cover w-20 h-20"
+                          className="rounded-full object-cover w-20 h-20 ring-2 ring-white shadow"
                           id="editImg"
                         />
-                        <Label htmlFor="profile-photo" className="cursor-pointer text-sm hover:underline">
+                        <Label htmlFor="profile-photo" className="cursor-pointer text-sm px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200">
                           Update Profile Photo
                         </Label>
                         <input
@@ -531,11 +540,11 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                         />
                       </div>
 
-                      <div className="items-center w-6/10">
+                      <div className="w-full">
                         <Label htmlFor="editName">Group Name:</Label>
                         <Input
                           name="name"
-                          className="border rounded p-2"
+                          className="border rounded p-2 mt-1"
                           value={editValues.grpname || ""}
                           placeholder="Enter Group Name"
                           id="editName"
@@ -543,11 +552,11 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                         />
                       </div>
 
-                      <div className="items-center w-6/10">
+                      <div className="w-full">
                         <Label htmlFor="editDesc">Group Description:</Label>
                         <Input
                           name="desc"
-                          className="border rounded p-2"
+                          className="border rounded p-2 mt-1"
                           value={editValues.grpdesc || ""}
                           placeholder="Enter Description"
                           id="editDesc"
@@ -555,12 +564,12 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                         />
                       </div>
                             
-                      <div className="flex mt-4 gap-2 justify-end w-full">
-                        <button type="submit" className="cursor-pointer bg-black text-white px-3 py-1 rounded">
+                      <div className="flex mt-2 gap-2 justify-end w-full">
+                        <button type="submit" className="cursor-pointer bg-black text-white px-4 py-2 rounded-md">
                           Save
                         </button>
                         <button
-                          className="bg-gray-300 px-3 py-1 rounded"
+                          className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md"
                           type="button"
                           onClick={closeEditDialog}
                         >
@@ -569,7 +578,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                       </div>
                             
                     </form>
-                    </div>
+                  </motion.div>
             </DialogContent>
         </Dialog>
         
@@ -578,51 +587,56 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
             if (!isssOpen) setMySet(new Set());
             setshowAddUserDialog(isssOpen)
           }}>
-            <DialogContent className="w-xl">
+            <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
               <DialogHeader>
-                <DialogTitle>Add Users</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="px-6 pt-6">Add Users</DialogTitle>
+                <DialogDescription className="px-6">
                   Add users to your group.
                 </DialogDescription>
               </DialogHeader>
-                  <div className="flex flex-col items-center mt-4 gap-1">
-                    <form onSubmit={addUserSubmit} className="w-full flex flex-col" >
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    className="px-6 pb-6"
+                  >
+                    <form onSubmit={addUserSubmit} className="w-full flex flex-col gap-3" >
+                      <div className="max-h-72 overflow-y-auto rounded-lg border bg-gray-50 p-2">
                       {usrListData?.length>0 ? ( usrListData.map((ele, i) => (
-                          <>
+                          <React.Fragment key={ele._id}>
                           <label
-                            key={i}
-                            className="flex flex-row h-[2.5rem] items-center my-1 p-1 cursor-pointer"
+                            className="flex flex-row min-h-[2.75rem] items-center my-1 px-2 py-1.5 cursor-pointer rounded-md hover:bg-white"
                             >
                             <img
                               src={`${
-                                ele.profilePhoto.includes("googleusercontent") || ele.profilePhoto == "NA"
+                                ele.profilePhoto?.includes("googleusercontent") || ele.profilePhoto == "NA"
                                   ? "./assets/user_img.jpg"
                                   : ele.profilePhoto
                               }`}
-                              className="rounded-full object-cover"
-                              style={{ aspectRatio: "1", height: "95%" }}
+                              className="rounded-full object-cover h-9 w-9"
                             />
-                            <p className="ml-2 font-medium text-lg">{ele.name}</p>
+                            <p className="ml-2 font-medium text-base truncate">{ele.name}</p>
                             <input
                               type="checkbox"
-                              className="ml-auto h-5/10 aspect-square"
+                              className="ml-auto h-4 w-4"
                               value={ele._id}
                               onChange={addUsers}
                               />
                           </label>
-                          {i != usrListData?.length-1 ? <hr/> : ''}
-                          </>
+                          {i != usrListData?.length-1 ? <hr className="border-gray-200"/> : ''}
+                          </React.Fragment>
                       ))
                       ):
-                      <p>No users to add</p>
+                      <p className="p-2 text-sm text-gray-600">No users to add</p>
                       }
+                      </div>
                             
-                      <div className="flex mt-4 gap-2 justify-end w-full">
-                        <button type="submit" className="cursor-pointer bg-black text-white px-3 py-1 rounded">
+                      <div className="flex mt-2 gap-2 justify-end w-full">
+                        <button type="submit" className="cursor-pointer bg-black text-white px-4 py-2 rounded-md">
                           Confirm
                         </button>
                         <button
-                          className="bg-gray-300 px-3 py-1 rounded"
+                          className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md"
                           type="button"
                           onClick={()=>{
                             setshowAddUserDialog(false);
@@ -633,7 +647,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                       </div>
                             
                     </form>
-                    </div>
+                  </motion.div>
             </DialogContent>
         </Dialog>
 
