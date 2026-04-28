@@ -22,6 +22,8 @@ export default function MessageBubble({
   onReply,
   onForward,
   onEdit,
+  canDelete,
+  onDelete,
 }) {
   const msg = message;
 
@@ -72,11 +74,21 @@ export default function MessageBubble({
       return <React.Fragment key={`t-${idx}`}>{part}</React.Fragment>;
     });
   };
+  const getAttachmentLabel = (url) => {
+    const raw = url.split("_").pop() || "Attachment";
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  };
 
   return (
     <div
-      className={`py-2 px-5 mb-2 w-fit rounded-4xl max-w-[45%] min-w-0 relative ${
-        isMine ? "bg-blue-400 ml-auto" : "bg-gray-200"
+      className={`relative mb-2 w-fit min-w-0 max-w-[82%] sm:max-w-[72%] lg:max-w-[58%] pl-3 pr-10 py-2.5 shadow-sm ${
+        isMine
+          ? "ml-auto bg-[#d9fdd3] text-[#111b21] rounded-2xl rounded-br-md"
+          : "bg-white text-[#111b21] rounded-2xl rounded-bl-md"
       }`}
     >
       {!msg.message?.text?.includes?.("|SystemGenerated|") && (
@@ -86,40 +98,44 @@ export default function MessageBubble({
           onReply={onReply}
           onForward={onForward}
           onEdit={onEdit}
+          canDelete={canDelete}
+          onDelete={onDelete}
         />
       )}
       {/* Show sender info in group chats (for messages from others) */}
       {isGroupChat && !isMine && senderInfo && (
-        <div className="flex align-center mb-1 gap-2 min-w-0">
+        <div className="mb-1.5 flex min-w-0 items-center gap-2">
           <img
             src={senderPhoto}
-            className="rounded-full object-cover"
-            style={{ aspectRatio: "1", height: "1.5rem" }}
+            className="h-6 w-6 rounded-full object-cover"
             alt={senderInfo.name}
           />
-          <p className="text-blue-950 truncate">{senderInfo.name}</p>
+          <p className="truncate text-sm font-medium text-blue-900">{senderInfo.name}</p>
         </div>
       )}
 
       {/* File attachments */}
       {msg.message?.url?.length > 0 && (
-        <div className="min-w-0">
+        <div className="mb-1 min-w-0 space-y-1.5">
           {msg.message.url.map((item) => (
             <a
-              className="bg-[#d1d5dc] px-2 rounded flex mb-1 max-w-full min-w-0 break-all"
+              className="flex max-w-full min-w-0 items-center gap-2 rounded-lg bg-black/5 px-2.5 py-1.5 hover:bg-black/10"
               href={item}
               key={item}
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="break-all">{item.split("_").pop()}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4 shrink-0 text-gray-600">
+                <path fillRule="evenodd" d="M19.5 21a3 3 0 0 0 3-3V8.121a3 3 0 0 0-.879-2.121l-3.621-3.621A3 3 0 0 0 15.879 1.5H7.5a3 3 0 0 0-3 3v13.5a3 3 0 0 0 3 3h12ZM9 7.5a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H9Zm0 3a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5H9Zm0 3a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5H9Z" clipRule="evenodd" />
+              </svg>
+              <span className="truncate text-sm">{getAttachmentLabel(item)}</span>
             </a>
           ))}
         </div>
       )}
 
       {msg.replyTo?.messageId && (
-        <div className="mb-1 rounded-md bg-black/10 px-2 py-1 border-l-2 border-blue-500">
+        <div className="mb-1.5 rounded-md border-l-2 border-blue-500 bg-black/10 px-2 py-1">
           <p className="text-[10px] font-semibold text-blue-900 truncate">{replySenderName}</p>
           <p className="text-[10px] text-gray-800 truncate">
             {msg.replyTo?.text?.trim() || "Message"}
@@ -128,21 +144,25 @@ export default function MessageBubble({
       )}
 
       {/* Message text */}
-      {(msg.forwardInfo?.isForwarded || msg.message?.text?.includes?.("|Forwarded|")) && (
-        <p className="text-[11px] font-semibold text-gray-700 mb-0.5">Forwarded</p>
-      )}
-      {msg.isEdited && (
-        <p className="text-[11px] font-semibold text-gray-700 mb-0.5">Edited</p>
-      )}
-      <p className="break-words">
+      <div className="pr-1">
+      <p className="break-words text-[0.94rem] leading-relaxed whitespace-pre-wrap">
         {renderTextWithMentions((msg.message?.text ?? "").replace("|Forwarded|", "").trim())}
       </p>
+      </div>
 
       {/* Timestamp */}
-      <p className="text-xs italic text-right">{dateFormat(msg.timestamp)}</p>
+      <div className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-gray-600">
+        {(msg.forwardInfo?.isForwarded || msg.message?.text?.includes?.("|Forwarded|")) && (
+          <span className="rounded bg-black/10 px-1.5 py-0.5 font-medium">Forwarded</span>
+        )}
+        {msg.isEdited && (
+          <span className="rounded bg-black/10 px-1.5 py-0.5 font-medium">Edited</span>
+        )}
+        <span className="italic">{dateFormat(msg.timestamp)}</span>
+      </div>
 
       {/* Status (pending, failed, etc.) */}
-      {msg.status && <p className="text-xs italic text-right">{msg.status}</p>}
+      {msg.status && <p className="text-[11px] italic text-right text-gray-600">{msg.status}</p>}
     </div>
   );
 }

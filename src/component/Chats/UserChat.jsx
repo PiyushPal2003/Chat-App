@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Swal from "sweetalert2";
 import { useSelector, useDispatch } from "react-redux";
 import { getSocket } from "../Context/Socket";
 import api, {
@@ -287,6 +288,28 @@ export default function UserChat({ currChatId, setLastMessage }) {
     });
   }, []);
 
+  const handleDeleteAction = useCallback((message, status) => {
+    if (String(message?.senderId) !== String(user.id)) return;
+    const ageMs = Date.now() - new Date(message?.timestamp).getTime();
+    const canDeleteWithinWindow = ageMs <= 15 * 60 * 1000;
+
+    if(!canDeleteWithinWindow && status !== "me") return;
+
+    Swal.fire({
+      title: "Delete Message" + (status === "everyone" ? " for Everyone" : " for You"),
+      text: "Are you sure you want to delete this message?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Delete"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Proceed with deletion
+      }
+    });
+  }, []);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // SEND MESSAGE
   // ─────────────────────────────────────────────────────────────────────────────
@@ -483,6 +506,10 @@ export default function UserChat({ currChatId, setLastMessage }) {
                   !(Array.isArray(item?.message?.url) && item.message.url.length > 0) &&
                   !(Boolean(item?.forwardInfo?.isForwarded) || item?.message?.text?.includes?.("|Forwarded|"))
                 }
+                canDelete={
+                  String(item.senderId) === String(user.id) &&
+                  (Date.now() - new Date(item.timestamp).getTime() <= 15 * 60 * 1000)
+                }
                 isGroupChat={chatMeta?.chat?.isGroupChat}
                 senderInfo={chatMembers[item.senderId]}
                 chatMembers={chatMembers}
@@ -490,6 +517,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
                 onReply={handleReplyAction}
                 onForward={handleForwardAction}
                 onEdit={handleEditAction}
+                onDelete={handleDeleteAction}
               />
             </div>
           );

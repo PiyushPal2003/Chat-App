@@ -78,7 +78,7 @@ export default function ChatHeader({
 
   return (
     <div className="w-full h-16 border flex flex-row items-center" id="header">
-      <div className="w-full h-full flex flex-row items-center relative pl-12 lg:pl-0">
+      <div className="w-full h-full flex flex-row items-center relative pl-12 lg:pl-3">
         <img
           src={avatarSrc}
           className="rounded-full object-cover h-4/5"

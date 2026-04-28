@@ -12,31 +12,41 @@ export default function MessageActionMenu({
   onReply,
   onForward,
   onEdit,
+  canDelete,
+  onDelete,
 }) {
-  const runAction = (fn) => fn?.(message);
+  const runAction = (fn, type=null) => fn?.(message, type);
 
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="absolute top-1 right-1 text-lg rounded-full w-7 h-7 leading-none hover:bg-black/10 flex items-center justify-center"
+          className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-gray-700 bg-white/70 hover:bg-white"
           aria-label="Message actions"
         >
           ⋮
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" sideOffset={4} className="min-w-[110px] p-0.5">
-        <DropdownMenuItem className="px-2 py-1.5 text-xs" onSelect={() => runAction(onReply)}>
+      <DropdownMenuContent align="end" sideOffset={6} className="z-50 min-w-[124px] p-1">
+        <DropdownMenuItem className="rounded px-2.5 py-1.5 text-xs" onSelect={() => runAction(onReply)}>
           Reply
         </DropdownMenuItem>
-        <DropdownMenuItem className="px-2 py-1.5 text-xs" onSelect={() => runAction(onForward)}>
+        <DropdownMenuItem className="rounded px-2.5 py-1.5 text-xs" onSelect={() => runAction(onForward)}>
           Forward
         </DropdownMenuItem>
         {canEdit && (
-          <DropdownMenuItem className="px-2 py-1.5 text-xs" onSelect={() => runAction(onEdit)}>
+          <DropdownMenuItem className="rounded px-2.5 py-1.5 text-xs" onSelect={() => runAction(onEdit)}>
             Edit
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem className="rounded px-2.5 py-1.5 text-xs" onSelect={() => runAction(onDelete, "me")}>
+          Delete for me
+        </DropdownMenuItem>
+        {canDelete && (
+          <DropdownMenuItem className="rounded px-2.5 py-1.5 text-xs" onSelect={() => runAction(onDelete, "everyone")}>
+            Delete for everyone
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

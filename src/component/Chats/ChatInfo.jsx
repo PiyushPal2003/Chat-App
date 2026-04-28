@@ -309,6 +309,16 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
         }
     }
 
+    const convoMedia = data?.convoAttachment || data?.convoAttachments || [];
+    const getAttachmentName = (url) => {
+      const raw = url?.split("_").pop() || "Attachment";
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    };
+
 // console.log('open state in chat info:', open);
   useEffect(() => {
     if (!open) return;
@@ -455,7 +465,24 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
             </div>
 
             <div className='mt-5'>
-                <h1 className='text-start font-semibold'>Group Media:</h1>
+                <h1 className='text-start font-semibold'>Media:</h1>
+                <div className='mt-2 flex flex-col gap-2'>
+                  {convoMedia.length > 0 ? (
+                    convoMedia.map((fileUrl, idx) => (
+                      <a
+                        key={`${fileUrl}-${idx}`}
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className='rounded-md bg-[#d8d8d8] px-3 py-2 text-sm truncate hover:bg-[#cecece]'
+                      >
+                        {getAttachmentName(fileUrl)}
+                      </a>
+                    ))
+                  ) : (
+                    <p className='text-sm text-gray-600'>No media shared yet.</p>
+                  )}
+                </div>
             </div>
     
         </div>
@@ -465,7 +492,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
             className='w-full h-full bg-white' id='settingDrawer'
             ref={ref}
         >
-        <div className='relative w-full h-full bg-[#ebebeb]'>
+        <div className='relative w-full h-full bg-[#ebebeb] overflow-y-auto p-5'>
             <button
               type="button"
               onClick={() => setOpen(false)}
@@ -474,7 +501,7 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
             >
               ✕
             </button>
-            <div className='w-full h-full flex flex-col items-center justify-center gap-2 p-5'>
+            <div className='w-full flex flex-col items-center gap-2'>
               <img src={
                 data?.chat?.members?.filter(member => member._id !== user.id)[0]?.profilePhoto == 'NA' ? './assets/user_img.jpg' : data?.chat?.members?.filter(member => member._id !== user.id)[0]?.profilePhoto
               } 
@@ -497,6 +524,27 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
                 }
               </p>
               <p className='text-center text-gray-600'>{data?.chat?.members?.filter(member => member._id !== user.id)[0]?.email}</p>
+
+              <div className='mt-4 w-full'>
+                <h1 className='text-start font-semibold'>Media:</h1>
+                <div className='mt-2 flex flex-col gap-2'>
+                  {convoMedia.length > 0 ? (
+                    convoMedia.map((fileUrl, idx) => (
+                      <a
+                        key={`${fileUrl}-${idx}`}
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className='rounded-md bg-[#d8d8d8] px-3 py-2 text-sm truncate hover:bg-[#cecece]'
+                      >
+                        {getAttachmentName(fileUrl)}
+                      </a>
+                    ))
+                  ) : (
+                    <p className='text-sm text-gray-600'>No media shared yet.</p>
+                  )}
+                </div>
+              </div>
             </div>
         </div>
       </div>)

@@ -207,7 +207,7 @@ export function LoginForm({
   //Login Handlers
   function loginFormSubmit(e){
     e.preventDefault();
-    submitRefbtn.current.disabled = true;
+    if (submitRefbtn.current) submitRefbtn.current.disabled = true;
 
     const data = {
       email: e.target.email.value,
@@ -248,7 +248,8 @@ export function LoginForm({
     })
     .catch((error)=>{
       console.log('Error Creating User -- Error:', error);
-      if(error.response.status == 400){
+      const status = error?.response?.status;
+      if(status == 400){
         toast.error(
           <div>
             <p className="font-bold text-center">User Not Found!</p>
@@ -260,7 +261,7 @@ export function LoginForm({
           }
         );
       }
-      else if(error.response.status == 401){
+      else if(status == 401){
         toast.error(
           <div>
             <p className="font-bold text-center">Invalid Credentails</p>
@@ -272,7 +273,7 @@ export function LoginForm({
           }
         );
       }
-      else if(error.response.status == 500){
+      else if(status == 500){
         toast.error(
           <div>
             <p className="font-bold text-center">Server Error!</p>
@@ -283,11 +284,23 @@ export function LoginForm({
             position: 'top-center',
           }
         );
+      } else {
+        toast.error(
+          <div>
+            <p className="font-bold text-center">Login failed</p>
+            <p className="text-center">Please try again.</p>
+          </div>,
+          {
+            duration: 3000,
+            position: 'top-center',
+          }
+        );
       }
-
-      submitRefbtn.current.disabled = false;
       console.error('Error Logging in User -- Error:', error);
     })
+    .finally(() => {
+      if (submitRefbtn.current) submitRefbtn.current.disabled = false;
+    });
   }
 
   const googleSignIn = (res)=>{
