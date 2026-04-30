@@ -1,7 +1,15 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { login, logout } from "../Reducers/authSlice";
 
-const baseQuery = fetchBaseQuery({ baseUrl: `http://localhost:5000/api`, credentials: "include" });
+const baseQuery = fetchBaseQuery({ 
+  baseUrl: `http://localhost:5000/api`,
+  credentials: "include",
+  prepareHeaders: (headers) => {
+    const token = JSON.parse(localStorage.getItem("chatAccessToken"));
+    if (token) headers.set("authorization", `Bearer ${token}`);
+    return headers;
+  }
+});
 
 const fetchBaseQueryWithReAuth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
@@ -9,8 +17,9 @@ const fetchBaseQueryWithReAuth = async (args, api, extraOptions) => {
   if (result?.error?.status === 401 && result?.error?.data?.message === "Invalid or expired token") 
   {
     console.log("access token expired, trying refresh token");
-    const refreshResult = await baseQuery({ url: "/auth/refresh" }, api, extraOptions);;
+    const refreshResult = await baseQuery({ url: "/auth/refresh" }, api, extraOptions);
     if (refreshResult.data) {
+      localStorage.setItem("chatAccessToken", JSON.stringify(refreshResult.data.accessToken));
       result = await baseQuery(args, api, extraOptions);
     } else {
       console.log("refresh failed", refreshResult.error);
@@ -55,7 +64,7 @@ const api = createApi({
       query: () => ({
         url: "/currentuser",
         headers: {
-          "Content-Type": "application/json",
+          // //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         credentials: "include",
@@ -67,7 +76,7 @@ const api = createApi({
       query: () => ({
         url: "/users",
         headers: {
-          "Content-Type": "application/json",
+          // //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         credentials: "include",
@@ -115,7 +124,7 @@ const api = createApi({
         url: `/createchats`,
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          // //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         body: {id},
@@ -129,7 +138,7 @@ const api = createApi({
         url: `/creategroup`,
         method: "POST",
         headers: {
-          // "Content-Type": "application/json",
+          // //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         body: payload,
@@ -142,7 +151,7 @@ const api = createApi({
       query: (id) => ({
         url: `/chats/${id}`,
         headers: {
-          "Content-Type": "application/json",
+          //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         credentials: "include",
@@ -154,7 +163,7 @@ const api = createApi({
       query: (id) => ({
         url: `/fetchchat/${id}`,
         headers: {
-          "Content-Type": "application/json",
+          //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         credentials: "include",
@@ -166,7 +175,7 @@ const api = createApi({
       query: ({id, lastMessageId}) => ({
         url: `/fetchmessages?chatId=${id}&lastMessageId=${lastMessageId || ""}`,
         headers: {
-          "Content-Type": "application/json",
+          //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         credentials: "include",
@@ -193,7 +202,7 @@ const api = createApi({
         url: "/forwardchat",
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         body: { sourceMessageId, targetConversationIds },
@@ -207,7 +216,7 @@ const api = createApi({
         url: `/editmessage/${messageId}`,
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
+          //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
         body: { message },
