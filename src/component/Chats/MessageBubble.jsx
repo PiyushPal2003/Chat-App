@@ -82,6 +82,13 @@ export default function MessageBubble({
       return raw;
     }
   };
+  const deletedForMe = Array.isArray(msg.deleted?.for) &&
+    msg.deleted.for.some((id) => String(id) === String(currentUserId));
+  const deletedForEveryone = (msg.deleted?.status || "none") !== "none";
+  const deletedText = deletedForMe
+    ? "You deleted this message"
+    : (deletedForEveryone ? (msg.deleted?.text || "This message was deleted") : "");
+  const isDeletedMessage = Boolean(deletedText);
 
   return (
     <div
@@ -91,7 +98,7 @@ export default function MessageBubble({
           : "bg-white text-[#111b21] rounded-2xl rounded-bl-md"
       }`}
     >
-      {!msg.message?.text?.includes?.("|SystemGenerated|") && (
+      {!msg.message?.text?.includes?.("|SystemGenerated|") && !isDeletedMessage && (
         <MessageActionMenu
           message={msg}
           canEdit={canEdit}
@@ -114,48 +121,54 @@ export default function MessageBubble({
         </div>
       )}
 
-      {/* File attachments */}
-      {msg.message?.url?.length > 0 && (
-        <div className="mb-1 min-w-0 space-y-1.5">
-          {msg.message.url.map((item) => (
-            <a
-              className="flex max-w-full min-w-0 items-center gap-2 rounded-lg bg-black/5 px-2.5 py-1.5 hover:bg-black/10"
-              href={item}
-              key={item}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4 shrink-0 text-gray-600">
-                <path fillRule="evenodd" d="M19.5 21a3 3 0 0 0 3-3V8.121a3 3 0 0 0-.879-2.121l-3.621-3.621A3 3 0 0 0 15.879 1.5H7.5a3 3 0 0 0-3 3v13.5a3 3 0 0 0 3 3h12ZM9 7.5a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H9Zm0 3a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5H9Zm0 3a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5H9Z" clipRule="evenodd" />
-              </svg>
-              <span className="truncate text-sm">{getAttachmentLabel(item)}</span>
-            </a>
-          ))}
-        </div>
-      )}
+      {isDeletedMessage ? (
+        <p className="mt-1 pr-1 italic text-gray-700 text-sm break-words">{deletedText}</p>
+      ) : (
+        <>
+          {/* File attachments */}
+          {msg.message?.url?.length > 0 && (
+            <div className="mb-1 min-w-0 space-y-1.5">
+              {msg.message.url.map((item) => (
+                <a
+                  className="flex max-w-full min-w-0 items-center gap-2 rounded-lg bg-black/5 px-2.5 py-1.5 hover:bg-black/10"
+                  href={item}
+                  key={item}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4 shrink-0 text-gray-600">
+                    <path fillRule="evenodd" d="M19.5 21a3 3 0 0 0 3-3V8.121a3 3 0 0 0-.879-2.121l-3.621-3.621A3 3 0 0 0 15.879 1.5H7.5a3 3 0 0 0-3 3v13.5a3 3 0 0 0 3 3h12ZM9 7.5a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H9Zm0 3a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5H9Zm0 3a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5H9Z" clipRule="evenodd" />
+                  </svg>
+                  <span className="truncate text-sm">{getAttachmentLabel(item)}</span>
+                </a>
+              ))}
+            </div>
+          )}
 
-      {msg.replyTo?.messageId && (
-        <div className="mb-1.5 rounded-md border-l-2 border-blue-500 bg-black/10 px-2 py-1">
-          <p className="text-[10px] font-semibold text-blue-900 truncate">{replySenderName}</p>
-          <p className="text-[10px] text-gray-800 truncate">
-            {msg.replyTo?.text?.trim() || "Message"}
+          {msg.replyTo?.messageId && (
+            <div className="mb-1.5 rounded-md border-l-2 border-blue-500 bg-black/10 px-2 py-1">
+              <p className="text-[10px] font-semibold text-blue-900 truncate">{replySenderName}</p>
+              <p className="text-[10px] text-gray-800 truncate">
+                {msg.replyTo?.text?.trim() || "Message"}
+              </p>
+            </div>
+          )}
+
+          {/* Message text */}
+          <div className="pr-1">
+          <p className="break-words text-[0.94rem] leading-relaxed whitespace-pre-wrap">
+            {renderTextWithMentions((msg.message?.text ?? "").replace("|Forwarded|", "").trim())}
           </p>
-        </div>
+          </div>
+        </>
       )}
-
-      {/* Message text */}
-      <div className="pr-1">
-      <p className="break-words text-[0.94rem] leading-relaxed whitespace-pre-wrap">
-        {renderTextWithMentions((msg.message?.text ?? "").replace("|Forwarded|", "").trim())}
-      </p>
-      </div>
 
       {/* Timestamp */}
       <div className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-gray-600">
-        {(msg.forwardInfo?.isForwarded || msg.message?.text?.includes?.("|Forwarded|")) && (
+        {!isDeletedMessage && (msg.forwardInfo?.isForwarded || msg.message?.text?.includes?.("|Forwarded|")) && (
           <span className="rounded bg-black/10 px-1.5 py-0.5 font-medium">Forwarded</span>
         )}
-        {msg.isEdited && (
+        {!isDeletedMessage && msg.isEdited && (
           <span className="rounded bg-black/10 px-1.5 py-0.5 font-medium">Edited</span>
         )}
         <span className="italic">{dateFormat(msg.timestamp)}</span>

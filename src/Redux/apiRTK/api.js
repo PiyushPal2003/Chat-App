@@ -224,9 +224,23 @@ const api = createApi({
       }),
       invalidatesTags: ["Chats"],
     }),
+
+    deleteMessage: builder.mutation({
+      query: ({ messageId, status }) => ({
+        url: `/deletemessage`,
+        method: "DELETE",
+        headers: {
+          //"Content-Type": "application/json",
+          authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
+        },
+        body: { messageId, status },
+        credentials: "include",
+      }),
+      invalidatesTags: ["Chats"],
+    }),
   
   }),
 })
 
 export default api;
-export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useForwardChatMutation, useEditMessageMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useLazyFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery, useEditGroupMutation} = api;
+export const { useGetUserQuery, useEditProfileMutation, useGetChatsQuery, useSendChatMutation, useForwardChatMutation, useEditMessageMutation, useCreateChatMutation, useFetchChatQuery, useRefreshTokenMutation, useLazyFetchMessagesQuery, useCreateGroupChatMutation, useLazyGetCurrentUserQuery, useEditGroupMutation, useDeleteMessageMutation} = api;

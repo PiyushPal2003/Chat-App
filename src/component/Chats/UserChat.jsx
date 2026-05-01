@@ -7,6 +7,7 @@ import api, {
   useSendChatMutation,
   useForwardChatMutation,
   useEditMessageMutation,
+  useDeleteMessageMutation,
   useLazyFetchMessagesQuery,
   useGetChatsQuery,
 } from "../../Redux/apiRTK/api";
@@ -25,6 +26,7 @@ import ChatInput from "./ChatInput";
 import MessageBubble from "./MessageBubble";
 import ChatInfo from "./ChatInfo";
 import ForwardMessageModal from "./ForwardMessageModal";
+import toast from "react-hot-toast";
 
 export default function UserChat({ currChatId, setLastMessage }) {
   const dispatch = useDispatch();
@@ -38,6 +40,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
   const [sendChatMutation] = useSendChatMutation();
   const [forwardChatMutation] = useForwardChatMutation();
   const [editMessageMutation] = useEditMessageMutation();
+  const [deleteMessageMutation] = useDeleteMessageMutation();
   const { data: chatsData } = useGetChatsQuery(user?.id, { skip: !user?.id });
 
   // Build a lookup map: memberId -> {name, photo}
@@ -166,12 +169,41 @@ export default function UserChat({ currChatId, setLastMessage }) {
         setMessages((prev) => prev.map((m) => (String(m._id) === String(msg._id) ? msg : m)));
       }
     };
+    const handleMessageDeleted = (payload) => {
+      const conversationId = payload?.conversationId || payload?.chat?.conversationId;
+      if (conversationId && String(conversationId) !== String(currChatId)) return;
+
+      if (payload?.chat?._id) {
+        setMessages((prev) =>
+          prev.map((m) => (String(m._id) === String(payload.chat._id) ? payload.chat : m))
+        );
+        return;
+      }
+      if (payload?.messageId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            String(m._id) === String(payload.messageId)
+              ? {
+                  ...m,
+                  deleted: {
+                    ...(m.deleted || {}),
+                    status: "everyone",
+                    text: "This message was deleted for everyone",
+                  },
+                }
+              : m
+          )
+        );
+      }
+    };
 
     socket.on("newMessage", handleNewMessage);
     socket.on("messageEdited", handleMessageEdited);
+    socket.on("messageDeleted", handleMessageDeleted);
     return () => {
       socket.off("newMessage", handleNewMessage);
       socket.off("messageEdited", handleMessageEdited);
+      socket.off("messageDeleted", handleMessageDeleted);
     };
   }, [socket, currChatId, addMessagesDedup, dispatch]);
 
@@ -288,14 +320,15 @@ export default function UserChat({ currChatId, setLastMessage }) {
     });
   }, []);
 
-  const handleDeleteAction = useCallback((message, status) => {
-    if (String(message?.senderId) !== String(user.id)) return;
+  const handleDeleteAction = useCallback(async (message, status) => {
     const ageMs = Date.now() - new Date(message?.timestamp).getTime();
     const canDeleteWithinWindow = ageMs <= 15 * 60 * 1000;
 
     if(!canDeleteWithinWindow && status !== "me") return;
 
-    Swal.fire({
+    const messageId = message._id;
+
+    const result = await Swal.fire({
       title: "Delete Message" + (status === "everyone" ? " for Everyone" : " for You"),
       text: "Are you sure you want to delete this message?",
       icon: "warning",
@@ -303,12 +336,22 @@ export default function UserChat({ currChatId, setLastMessage }) {
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Delete"
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // Proceed with deletion
-      }
     });
-  }, []);
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await deleteMessageMutation({ messageId, status }).unwrap();
+      if (res?.chat?._id) {
+        setMessages((prev) =>
+          prev.map((m) => (String(m._id) === String(res.chat._id) ? res.chat : m))
+        );
+      }
+      toast.success("Message deleted");
+    } catch (err) {
+      console.error("deleteMessage Failed:", err);
+      toast.error(err?.data?.message || "Failed to delete message");
+    }
+  }, [deleteMessageMutation]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // SEND MESSAGE
@@ -507,8 +550,10 @@ export default function UserChat({ currChatId, setLastMessage }) {
                   !(Boolean(item?.forwardInfo?.isForwarded) || item?.message?.text?.includes?.("|Forwarded|"))
                 }
                 canDelete={
-                  String(item.senderId) === String(user.id) &&
-                  (Date.now() - new Date(item.timestamp).getTime() <= 15 * 60 * 1000)
+                  (String(item.senderId) === String(user.id) &&
+                  (Date.now() - new Date(item.timestamp).getTime() <= 15 * 60 * 1000))
+                  ||
+                  (chatMeta?.chat?.isGroupChat && (chatMeta?.chat?.admin || []).some((id) => String(id) === String(user.id)))
                 }
                 isGroupChat={chatMeta?.chat?.isGroupChat}
                 senderInfo={chatMembers[item.senderId]}
