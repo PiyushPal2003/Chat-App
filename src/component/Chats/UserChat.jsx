@@ -79,7 +79,10 @@ export default function UserChat({ currChatId, setLastMessage }) {
 
   // Virtualization: firstItemIndex for prepending
   const START_INDEX = 10000;
+  const INDEX_REBASE_FLOOR = 500;
+  const INDEX_REBASE_SHIFT = 500000;
   const [firstItemIndex, setFirstItemIndex] = useState(START_INDEX);
+  const visibleRangeRef = useRef({ startIndex: START_INDEX, endIndex: START_INDEX });
 
   // Flatten messages for Virtuoso (date headers + messages in flat array)
   const flattenedMessages = useMemo(() => {
@@ -170,6 +173,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
       }
     };
     const handleMessageDeleted = (payload) => {
+      dispatch(api.util.invalidateTags(['Chats']));
       const conversationId = payload?.conversationId || payload?.chat?.conversationId;
       if (conversationId && String(conversationId) !== String(currChatId)) return;
 
@@ -229,13 +233,33 @@ export default function UserChat({ currChatId, setLastMessage }) {
     
     // Total new flat items = new messages + new headers
     const newFlatItemCount = incoming.length + newHeaderCount;
-    
-    // Decrease firstItemIndex so existing items keep their virtual indices
-    setFirstItemIndex(prev => prev - newFlatItemCount);
+    const nextFirstIndex = firstItemIndex - newFlatItemCount;
+    const needsRebase = nextFirstIndex < INDEX_REBASE_FLOOR;
+    const shift = needsRebase ? INDEX_REBASE_SHIFT : 0;
+
+    // Decrease firstItemIndex so existing items keep their virtual indices.
+    // If near zero, rebase upwards to keep plenty of headroom for future prepends.
+    setFirstItemIndex(nextFirstIndex + shift);
     
     // Add messages to state
     addMessagesDedup(incoming, { prepend: true });
-  }, [messages, addMessagesDedup]);
+
+    if (shift > 0) {
+      const currentStart = visibleRangeRef.current?.startIndex;
+      if (typeof currentStart === "number") {
+        const targetIndex = currentStart + shift;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            virtuosoRef.current?.scrollToIndex({
+              index: targetIndex,
+              align: "start",
+              behavior: "auto",
+            });
+          });
+        });
+      }
+    }
+  }, [messages, addMessagesDedup, firstItemIndex]);
 
   const handleStartReached = useCallback(() => {
     if (!hasMore || isLoadingOlder || messages.length === 0) return;
@@ -259,6 +283,9 @@ export default function UserChat({ currChatId, setLastMessage }) {
       handleStartReached();
     }
   }, [handleStartReached]);
+  const handleRangeChanged = useCallback((range) => {
+    visibleRangeRef.current = range;
+  }, []);
 
   const handleReplyAction = useCallback((message) => {
     const senderName = String(message?.senderId) === String(user.id)
@@ -512,6 +539,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
         initialTopMostItemIndex={flattenedMessages.length > 0 ? flattenedMessages.length - 1 : 0}
         atTopThreshold={120}
         atTopStateChange={handleAtTopStateChange}
+        rangeChanged={handleRangeChanged}
         followOutput="smooth"
         components={{
           Header: () => isLoadingOlder ? (

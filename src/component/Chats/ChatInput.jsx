@@ -106,8 +106,8 @@ export default function ChatInput({
   // If user is not a member, show restricted message
   if (!isMember) {
     return (
-      <div className="w-full bg-gray-300 relative pt-2" id="footer">
-        <div className="rounded-full mx-2 p-4 border bg-white">
+      <div className="w-full bg-gray-300 relative py-2" id="footer">
+        <div className="rounded-xl mx-2 p-4 border bg-white">
           <div className="p-4 text-center text-red-500 font-semibold">
             You are no longer a member of this group.
           </div>
@@ -117,8 +117,8 @@ export default function ChatInput({
   }
 
   return (
-    <div className="w-full bg-gray-300 relative pt-2" id="footer">
-      <div className="rounded-full mx-2 p-4 border bg-white">
+    <div className="w-full bg-gray-300 relative py-2" id="footer">
+      <div className="rounded-xl mx-2 p-4 border bg-white">
         {replyTarget && (
           <div className="mb-2 rounded-lg bg-gray-100 px-3 py-2 flex items-start justify-between gap-2">
             <div className="min-w-0">
