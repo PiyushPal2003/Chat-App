@@ -75,6 +75,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
 
   // Pagination state
   const [hasMore, setHasMore] = useState(false);
+  const [hasMoreBottom, setHasMoreBottom] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
 
   // Virtualization: firstItemIndex for prepending
@@ -96,6 +97,14 @@ export default function UserChat({ currChatId, setLastMessage }) {
       flat.push({ _type: 'header', date, _id: `header-${date}` });
       grouped[date].forEach(msg => {
         flat.push({ _type: 'message', ...msg });
+      });
+    });
+
+    requestAnimationFrame(() => {
+      virtuosoRef.current?.scrollToIndex({
+        index: flat.length - 1,
+        align: "start",
+        behavior: "auto",
       });
     });
     
@@ -144,6 +153,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
     setMessages([]);
     messageIdsRef.current = new Set();
     setHasMore(false);
+    setHasMoreBottom(false);
     setFirstItemIndex(START_INDEX);
 
     fetchMessagesTrigger({ id: currChatId })
@@ -152,6 +162,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
         const resMessages = Array.isArray(res?.messages) ? res.messages : [];
         addMessagesDedup(resMessages, { prepend: false });
         setHasMore(Boolean(res?.hasMore ?? (resMessages.length || 0) >= 15));
+        setHasMoreBottom(Boolean(res?.hasMoreBottom ?? (resMessages.length || 0) >= 15));
       })
       .catch((err) => console.error("Failed to fetch messages:", err));
   }, [currChatId, addMessagesDedup, fetchMessagesTrigger]);
@@ -278,11 +289,35 @@ export default function UserChat({ currChatId, setLastMessage }) {
       .finally(() => setIsLoadingOlder(false));
   }, [currChatId, fetchMessagesTrigger, hasMore, isLoadingOlder, messages, prependMessagesWithVirtualIndex]);
 
+  const handleBottomReached = useCallback(() => {
+    if (!hasMore || isLoadingOlder || messages.length === 0) return;
+    
+    setIsLoadingOlder(true);
+    const earliestId = messages[0]?._id;
+    
+    fetchMessagesTrigger({ id: currChatId, lastMessageId: earliestId })
+      .unwrap()
+      .then((res) => {
+        const resMessages = Array.isArray(res?.messages) ? res.messages : [];
+        prependMessagesWithVirtualIndex(resMessages);
+        setHasMore(Boolean(res?.hasMore ?? (resMessages.length || 0) >= 15));
+      })
+      .catch((err) => console.error("Error fetching older messages:", err))
+      .finally(() => setIsLoadingOlder(false));
+  }, [currChatId, fetchMessagesTrigger, hasMore, isLoadingOlder, messages, prependMessagesWithVirtualIndex]);
+
   const handleAtTopStateChange = useCallback((atTop) => {
     if (atTop) {
       handleStartReached();
     }
   }, [handleStartReached]);
+
+  const handleAtBottomStateChange = useCallback((atBottom) => {
+    if (atBottom) {
+      handleBottomReached();
+    }
+  }, [handleBottomReached]);
+
   const handleRangeChanged = useCallback((range) => {
     visibleRangeRef.current = range;
   }, []);
@@ -539,6 +574,8 @@ export default function UserChat({ currChatId, setLastMessage }) {
         initialTopMostItemIndex={flattenedMessages.length > 0 ? flattenedMessages.length - 1 : 0}
         atTopThreshold={120}
         atTopStateChange={handleAtTopStateChange}
+        atBottomThreshold={120}
+        atBottomStateChange={handleAtBottomStateChange}
         rangeChanged={handleRangeChanged}
         followOutput="smooth"
         components={{
@@ -546,7 +583,9 @@ export default function UserChat({ currChatId, setLastMessage }) {
             <div className="flex justify-center py-4">
               <Spinner className="size-8" />
             </div>
-          ) : null
+          ) : null,
+
+          Footer: () => <div style={{ height: 40 }} />
         }}
         itemContent={(index, item) => {
           // Date header
