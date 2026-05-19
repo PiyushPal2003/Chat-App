@@ -72,6 +72,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
   // Messages state
   const [messages, setMessages] = useState([]);
   const messageIdsRef = useRef(new Set());
+  const didMountVirtuosoRef = useRef(false);
 
   // Pagination state
   const [hasMore, setHasMore] = useState(false);
@@ -80,10 +81,12 @@ export default function UserChat({ currChatId, setLastMessage }) {
 
   // Virtualization: firstItemIndex for prepending
   const START_INDEX = 10000;
-  const INDEX_REBASE_FLOOR = 500;
-  const INDEX_REBASE_SHIFT = 500000;
   const [firstItemIndex, setFirstItemIndex] = useState(START_INDEX);
   const visibleRangeRef = useRef({ startIndex: START_INDEX, endIndex: START_INDEX });
+  const lastSentSeenRef = useRef(null);
+  const pendingSeenRef = useRef(null);
+  const seenDebounceRef = useRef(null);
+  const SEEN_DEBOUNCE_MS = 600;
 
   // Flatten messages for Virtuoso (date headers + messages in flat array)
   const flattenedMessages = useMemo(() => {
@@ -100,15 +103,23 @@ export default function UserChat({ currChatId, setLastMessage }) {
       });
     });
 
-    requestAnimationFrame(() => {
-      virtuosoRef.current?.scrollToIndex({
-        index: flat.length - 1,
-        align: "start",
-        behavior: "auto",
-      });
-    });
+    // requestAnimationFrame(() => {
+    //   virtuosoRef.current?.scrollToIndex({
+    //     index: firstItemIndex + flat.length - 1,
+    //     align: "start",
+    //     behavior: "auto",
+    //   });
+    // });
     
     return flat;
+  }, [messages]);
+
+  const messageIndexMap = useMemo(() => {
+    const map = new Map();
+    messages.forEach((m, idx) => {
+      if (m?._id) map.set(String(m._id), idx);
+    });
+    return map;
   }, [messages]);
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -155,6 +166,12 @@ export default function UserChat({ currChatId, setLastMessage }) {
     setHasMore(false);
     setHasMoreBottom(false);
     setFirstItemIndex(START_INDEX);
+    lastSentSeenRef.current = null;
+    pendingSeenRef.current = null;
+    if (seenDebounceRef.current) {
+      clearTimeout(seenDebounceRef.current);
+      seenDebounceRef.current = null;
+    }
 
     fetchMessagesTrigger({ id: currChatId })
       .unwrap()
@@ -166,6 +183,13 @@ export default function UserChat({ currChatId, setLastMessage }) {
       })
       .catch((err) => console.error("Failed to fetch messages:", err));
   }, [currChatId, addMessagesDedup, fetchMessagesTrigger]);
+
+  useEffect(() => {
+    if (flattenedMessages.length > 0) {
+      const t = setTimeout(() => { didMountVirtuosoRef.current = true; }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [flattenedMessages.length]);
 
   // Socket: listen for new messages
   useEffect(() => {
@@ -245,31 +269,13 @@ export default function UserChat({ currChatId, setLastMessage }) {
     // Total new flat items = new messages + new headers
     const newFlatItemCount = incoming.length + newHeaderCount;
     const nextFirstIndex = firstItemIndex - newFlatItemCount;
-    const needsRebase = nextFirstIndex < INDEX_REBASE_FLOOR;
-    const shift = needsRebase ? INDEX_REBASE_SHIFT : 0;
 
     // Decrease firstItemIndex so existing items keep their virtual indices.
-    // If near zero, rebase upwards to keep plenty of headroom for future prepends.
-    setFirstItemIndex(nextFirstIndex + shift);
+    console.log(nextFirstIndex, firstItemIndex, newFlatItemCount);
+    setFirstItemIndex(nextFirstIndex);
     
     // Add messages to state
     addMessagesDedup(incoming, { prepend: true });
-
-    if (shift > 0) {
-      const currentStart = visibleRangeRef.current?.startIndex;
-      if (typeof currentStart === "number") {
-        const targetIndex = currentStart + shift;
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            virtuosoRef.current?.scrollToIndex({
-              index: targetIndex,
-              align: "start",
-              behavior: "auto",
-            });
-          });
-        });
-      }
-    }
   }, [messages, addMessagesDedup, firstItemIndex]);
 
   const handleStartReached = useCallback(() => {
@@ -307,20 +313,55 @@ export default function UserChat({ currChatId, setLastMessage }) {
   }, [currChatId, fetchMessagesTrigger, hasMore, isLoadingOlder, messages, prependMessagesWithVirtualIndex]);
 
   const handleAtTopStateChange = useCallback((atTop) => {
+    if (!didMountVirtuosoRef.current) return;
     if (atTop) {
       handleStartReached();
     }
   }, [handleStartReached]);
 
   const handleAtBottomStateChange = useCallback((atBottom) => {
-    if (atBottom) {
-      handleBottomReached();
-    }
+    // if (atBottom) {
+    //   handleBottomReached();
+    // }
   }, [handleBottomReached]);
 
   const handleRangeChanged = useCallback((range) => {
     visibleRangeRef.current = range;
-  }, []);
+    if (!socket || !currChatId || !flattenedMessages.length) return;
+
+    const startIndex = Math.max(0, range?.startIndex ?? 0);
+    const endIndex = Math.min(flattenedMessages.length - 1, range?.endIndex ?? 0);
+    if (endIndex < startIndex){
+      console.log(range);
+      console.log(startIndex, endIndex);
+      return;
+    }
+
+    let candidate = null;
+    for (let i = endIndex; i >= startIndex; i -= 1) {
+      const item = flattenedMessages[i];
+      if (item?._type === "message" && String(item.senderId) !== String(user.id)) {
+        candidate = item;
+        break;
+      }
+    }
+    if (!candidate?._id) return;
+
+    const candidateIndex = messageIndexMap.get(String(candidate._id));
+    if (candidateIndex == null) return;
+    const lastIndex = lastSentSeenRef.current?.index ?? -1;
+    if (candidateIndex <= lastIndex) return;
+
+    pendingSeenRef.current = { messageId: candidate._id, index: candidateIndex };
+    if (seenDebounceRef.current) clearTimeout(seenDebounceRef.current);
+    seenDebounceRef.current = setTimeout(() => {
+      const pending = pendingSeenRef.current;
+      if (!pending?.messageId) return;
+      socket.emit("markSeen", { convoId: currChatId, messageId: pending.messageId });
+      lastSentSeenRef.current = pending;
+      pendingSeenRef.current = null;
+    }, SEEN_DEBOUNCE_MS);
+  }, [socket, currChatId, flattenedMessages, messageIndexMap, user.id]);
 
   const handleReplyAction = useCallback((message) => {
     const senderName = String(message?.senderId) === String(user.id)
@@ -571,7 +612,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
         className="bg-gray-300 flex-1"
         data={flattenedMessages}
         firstItemIndex={firstItemIndex}
-        initialTopMostItemIndex={flattenedMessages.length > 0 ? flattenedMessages.length - 1 : 0}
+        // initialTopMostItemIndex={flattenedMessages.length > 0 ? flattenedMessages.length - 1 : 0}
         atTopThreshold={120}
         atTopStateChange={handleAtTopStateChange}
         atBottomThreshold={120}
@@ -585,7 +626,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
             </div>
           ) : null,
 
-          Footer: () => <div style={{ height: 40 }} />
+          // Footer: () => <div style={{ height: 40 }} />
         }}
         itemContent={(index, item) => {
           // Date header
