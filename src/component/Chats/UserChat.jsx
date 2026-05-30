@@ -102,6 +102,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
         flat.push({ _type: 'message', ...msg });
       });
     });
+    lastSentSeenRef.current = chatMeta?.chat?.readState[user.id]?.lastSeenMessageId;
 
     // requestAnimationFrame(() => {
     //   virtuosoRef.current?.scrollToIndex({
@@ -166,7 +167,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
     setHasMore(false);
     setHasMoreBottom(false);
     setFirstItemIndex(START_INDEX);
-    lastSentSeenRef.current = null;
+    // lastSentSeenRef.current = null;
     pendingSeenRef.current = null;
     if (seenDebounceRef.current) {
       clearTimeout(seenDebounceRef.current);
@@ -329,11 +330,13 @@ export default function UserChat({ currChatId, setLastMessage }) {
     visibleRangeRef.current = range;
     if (!socket || !currChatId || !flattenedMessages.length) return;
 
-    const startIndex = Math.max(0, range?.startIndex ?? 0);
-    const endIndex = Math.min(flattenedMessages.length - 1, range?.endIndex ?? 0);
+    const rawStart = (range?.startIndex ?? 0) - firstItemIndex;
+    const rawEnd = (range?.endIndex ?? 0) - firstItemIndex;
+    const startIndex = Math.max(0, rawStart);
+    const endIndex = Math.min(flattenedMessages.length - 1, rawEnd);
+
     if (endIndex < startIndex){
-      console.log(range);
-      console.log(startIndex, endIndex);
+      console.log("Invalid range for seen messages. Range:", { startIndex, endIndex });
       return;
     }
 
@@ -345,23 +348,30 @@ export default function UserChat({ currChatId, setLastMessage }) {
         break;
       }
     }
-    if (!candidate?._id) return;
+    if (!candidate?._id){
+      console.log("No valid candidate for seen. Range:", { startIndex, endIndex }, "Items in range:", flattenedMessages.slice(startIndex, endIndex + 1));
+      return;
+    }
 
     const candidateIndex = messageIndexMap.get(String(candidate._id));
     if (candidateIndex == null) return;
-    const lastIndex = lastSentSeenRef.current?.index ?? -1;
-    if (candidateIndex <= lastIndex) return;
+    const lastIndex = lastSentSeenRef.current ?? -1;
+    if (candidate._id <= lastIndex){
+      console.log("No new message to mark seen. Candidate id:", candidate._id, "Last sent seen index:", lastIndex);
+      return;
+    }
 
+    console.log("Marking message as seen. Candidate ID:", candidate._id, "Last sent seen index:", lastIndex);
     pendingSeenRef.current = { messageId: candidate._id, index: candidateIndex };
     if (seenDebounceRef.current) clearTimeout(seenDebounceRef.current);
     seenDebounceRef.current = setTimeout(() => {
       const pending = pendingSeenRef.current;
       if (!pending?.messageId) return;
       socket.emit("markSeen", { convoId: currChatId, messageId: pending.messageId });
-      lastSentSeenRef.current = pending;
+      lastSentSeenRef.current = pending.messageId;
       pendingSeenRef.current = null;
     }, SEEN_DEBOUNCE_MS);
-  }, [socket, currChatId, flattenedMessages, messageIndexMap, user.id]);
+  }, [socket, currChatId, flattenedMessages, messageIndexMap, user.id, firstItemIndex]);
 
   const handleReplyAction = useCallback((message) => {
     const senderName = String(message?.senderId) === String(user.id)
