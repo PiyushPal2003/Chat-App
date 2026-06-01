@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { dateFormat } from "../../Utilities";
 import MessageActionMenu from "./MessageActionMenu";
 
@@ -10,6 +10,7 @@ import MessageActionMenu from "./MessageActionMenu";
  * - isMine: Boolean - is this message from the current user?
  * - isGroupChat: Boolean - is this a group chat?
  * - senderInfo: {name, photo} of the message sender (for group chats)
+ * - lastSentSeenRef: Reference to the last seen message ID
  */
 export default function MessageBubble({
   message,
@@ -24,6 +25,7 @@ export default function MessageBubble({
   onEdit,
   canDelete,
   onDelete,
+  readState,
 }) {
   const msg = message;
 
@@ -90,6 +92,25 @@ export default function MessageBubble({
     : (deletedForEveryone ? (msg.deleted?.text || "This message was deleted") : "");
   const isDeletedMessage = Boolean(deletedText);
 
+  const seenStatus = useCallback(() => { 
+    if(!isMine) return null;
+    const members = Object.keys(chatMembers).filter((id) => String(id) !== String(currentUserId));
+
+    const seenCount = members.filter(userId => {
+      const lastSeenId = readState[userId]?.lastSeenMessageId;
+
+      if (!lastSeenId) return false;
+
+      return lastSeenId >= msg._id;
+    }).length;
+
+    console.log(chatMembers, members, seenCount, readState);
+
+    if(members.length === seenCount) return "✓✓";
+    else return `✓`;
+
+  }, [readState, msg._id])
+
   return (
     <div
       className={`relative mb-2 w-fit min-w-0 max-w-[82%] sm:max-w-[72%] lg:max-w-[58%] pl-3 pr-10 py-2.5 shadow-sm ${
@@ -98,17 +119,25 @@ export default function MessageBubble({
           : "bg-white text-[#111b21] rounded-2xl rounded-bl-md"
       }`}
     >
-      {!msg.message?.text?.includes?.("|SystemGenerated|") && !isDeletedMessage && (
-        <MessageActionMenu
-          message={msg}
-          canEdit={canEdit}
-          onReply={onReply}
-          onForward={onForward}
-          onEdit={onEdit}
-          canDelete={canDelete}
-          onDelete={onDelete}
-        />
-      )}
+      <div className="absolute right-1.5 z-10 flex flex-col items-center justify-between">
+        <div>
+          {!msg.message?.text?.includes?.("|SystemGenerated|") && !isDeletedMessage && (
+            <MessageActionMenu
+              message={msg}
+              canEdit={canEdit}
+              onReply={onReply}
+              onForward={onForward}
+              onEdit={onEdit}
+              canDelete={canDelete}
+              onDelete={onDelete}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="absolute bottom-1 right-2 text-[10px] text-gray-600 leading-none">
+        {seenStatus()}
+      </div>
       {/* Show sender info in group chats (for messages from others) */}
       {isGroupChat && !isMine && senderInfo && (
         <div className="mb-1.5 flex min-w-0 items-center gap-2">

@@ -83,6 +83,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
   const START_INDEX = 10000;
   const [firstItemIndex, setFirstItemIndex] = useState(START_INDEX);
   const visibleRangeRef = useRef({ startIndex: START_INDEX, endIndex: START_INDEX });
+  // const lastSentSeenRef = useRef(null);
   const lastSentSeenRef = useRef(null);
   const pendingSeenRef = useRef(null);
   const seenDebounceRef = useRef(null);
@@ -102,7 +103,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
         flat.push({ _type: 'message', ...msg });
       });
     });
-    lastSentSeenRef.current = chatMeta?.chat?.readState[user.id]?.lastSeenMessageId;
+    // lastSentSeenRef.current = chatMeta?.chat?.readState[user.id]?.lastSeenMessageId;
 
     // requestAnimationFrame(() => {
     //   virtuosoRef.current?.scrollToIndex({
@@ -202,6 +203,21 @@ export default function UserChat({ currChatId, setLastMessage }) {
         addMessagesDedup([msg], { prepend: false });
       }
     };
+    const handleMessageSeen = (data) => {
+      if (String(data.conversationId) !== String(currChatId)) return;
+
+      dispatch(
+        api.util.updateQueryData("fetchChat", currChatId, (draft) => {
+          if (!draft?.chat) return;
+
+          if (!draft.chat.readState) draft.chat.readState = {};
+          draft.chat.readState[String(data.readerId)] = {
+            lastSeenMessageId: data.lastSeenMessageId,
+            seenAt: data.seenAt,
+          };
+        })
+      );
+    };
     const handleMessageEdited = (msg) => {
       dispatch(api.util.invalidateTags(['Chats']));
       if (String(msg.conversationId) === String(currChatId)) {
@@ -238,14 +254,23 @@ export default function UserChat({ currChatId, setLastMessage }) {
     };
 
     socket.on("newMessage", handleNewMessage);
+    socket.on("messagesSeen", handleMessageSeen);
     socket.on("messageEdited", handleMessageEdited);
     socket.on("messageDeleted", handleMessageDeleted);
     return () => {
       socket.off("newMessage", handleNewMessage);
+      socket.off("messagesSeen", handleMessageSeen);
       socket.off("messageEdited", handleMessageEdited);
       socket.off("messageDeleted", handleMessageDeleted);
     };
   }, [socket, currChatId, addMessagesDedup, dispatch]);
+
+  useEffect(() => {
+    if (chatMeta) {
+      lastSentSeenRef.current =
+        chatMeta.chat.readState[user.id]?.lastSeenMessageId;
+    }
+  }, [chatMeta, user.id]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // PAGINATION
@@ -681,6 +706,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
                 onForward={handleForwardAction}
                 onEdit={handleEditAction}
                 onDelete={handleDeleteAction}
+                readState={chatMeta?.chat?.readState}
               />
             </div>
           );

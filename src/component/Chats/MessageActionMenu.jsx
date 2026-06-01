@@ -22,7 +22,7 @@ export default function MessageActionMenu({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-gray-700 bg-white/70 hover:bg-white"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-gray-700 bg-white/70 hover:bg-white"
           aria-label="Message actions"
         >
           ⋮
