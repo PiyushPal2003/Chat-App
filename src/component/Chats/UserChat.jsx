@@ -501,10 +501,14 @@ export default function UserChat({ currChatId, setLastMessage }) {
 
       if (editTarget?.messageId) {
         try {
-          const res = await editMessageMutation({
+          const payload = {
             messageId: editTarget.messageId,
             message: messageText,
-          }).unwrap();
+          };
+          if (pendingMentions.length > 0) {
+            payload.mentions = JSON.stringify(pendingMentions.map((m) => m.userId));
+          }
+          const res = await editMessageMutation(payload).unwrap();
           const editedMsg = res.chat;
           setMessages((prev) =>
             prev.map((m) => (String(m._id) === String(editedMsg._id) ? editedMsg : m))

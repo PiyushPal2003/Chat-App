@@ -68,7 +68,7 @@ export default function Chats() {
   }, [data?.chats, searchQuery, user.id]);
 
   const getPreview = (chatId) => {
-    const preview = `${lastMessage[chatId]?.isEdited ? "(edited) " : ""}${cleanLastMessageText(lastMessage[chatId]?.message)}`;
+    const preview = `${cleanLastMessageText(lastMessage[chatId]?.message)}`;
     return preview.length > 24 ? `${preview.slice(0, 24)}...` : preview;
   };
 
