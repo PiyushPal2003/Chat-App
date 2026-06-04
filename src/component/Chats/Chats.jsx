@@ -51,6 +51,18 @@ export default function Chats() {
   const cleanLastMessageText = (text = "") =>
     text.replace("|SystemGenerated|", "").replace("|Forwarded|", "").trim();
 
+  // const getUnreadChatCount = (chat) =>{
+  //   if(!chat?.lastMessageId || !chat?.readState?.[user?.id]?.lastSeenMessageId){
+  //     console.log("here");
+  //     return 0;
+  //   }
+  //   else{
+  //     console.log(chat.lastMessageId, chat?.readState?.[user?.id]?.lastSeenMessageId);
+  //     console.log("there");
+  //     return chat.lastMessageId - chat?.readState?.[user?.id]?.lastSeenMessageId;
+  //   }
+  // }
+  
   const getChatName = (chat) =>
     chat?.isGroupChat ? chat?.grpname : chat?.members?.find((m) => m._id !== user.id)?.name || "Chat";
 
@@ -181,16 +193,21 @@ export default function Chats() {
             String(currChat) === String(chat._id) ? "bg-[#f0f2f5]" : "hover:bg-[#f5f6f6]"
           }`}
           onClick={() => {
+            // console.log(chat);
+            console.log(chat.readState?.[user?.id]?.lastSeenMessageId)
             setCurrChat(chat._id);
             if (isMobile) setMobileSidebarOpen(false);
           }}
         >
           <img src={getChatPhoto(chat)} className="rounded-full object-cover h-12 w-12" alt={getChatName(chat)} />
           <div className="min-w-0 flex-1">
-            <h1 className="font-medium text-[0.95rem] truncate">{getChatName(chat)}</h1>
+            <h1 className="font-medium text-[0.95rem] truncate inline">{getChatName(chat)}</h1>
             <div className="flex justify-between gap-2">
               <span className="text-xs text-gray-600 truncate">{getPreview(chat._id)}</span>
-              <span className="text-[11px] text-gray-500 shrink-0">{lastMessage[chat?._id]?.time}</span>
+              {/* <div> */}
+                {/* <span className="text-[11px] shrink-0 rounded-full bg-green-700 flex">{getUnreadChatCount(chat)}</span> */}
+                <span className="text-[11px] text-gray-500 shrink-0">{lastMessage[chat?._id]?.time}</span>
+              {/* </div> */}
             </div>
           </div>
         </div>
@@ -210,7 +227,7 @@ export default function Chats() {
         [cht?._id]: {
           message: cht?.lastMessage,
           time: chatListDateTime(cht?.lastMessageTime),
-          isEdited: Boolean(cht?.lastMessageEdited),
+          id : cht?.lastMessageId,
         },
       }));
     }

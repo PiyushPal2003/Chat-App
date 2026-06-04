@@ -532,10 +532,10 @@ export default function UserChat({ currChatId, setLastMessage }) {
       const payload = new FormData();
       payload.append("senderId", user.id);
       // determine receivers (all other members)
-      const receiverIdArray = chatMeta?.chat?.members
-        ?.filter((m) => m._id !== user.id)
-        .map((m) => m._id) || [];
-      payload.append("receiverId", JSON.stringify(receiverIdArray));
+      // const receiverIdArray = chatMeta?.chat?.members
+      //   ?.filter((m) => m._id !== user.id)
+      //   .map((m) => m._id) || [];
+      // payload.append("receiverId", JSON.stringify(receiverIdArray));
       if (messageText) payload.append("message", messageText);
       if (replyTarget?.messageId) payload.append("replyToId", replyTarget.messageId);
       if (pendingMentions.length > 0) {

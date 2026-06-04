@@ -104,7 +104,7 @@ export default function MessageBubble({
       return lastSeenId >= msg._id;
     }).length;
 
-    console.log(chatMembers, members, seenCount, readState);
+    // console.log(chatMembers, members, seenCount, readState);
 
     if(members.length === seenCount) return "✓✓";
     else return `✓`;
