@@ -212,14 +212,14 @@ const api = createApi({
     }),
 
     editMessage: builder.mutation({
-      query: (payload) => ({
-        url: `/editmessage/${payload.messageId}`,
+      query: ({ messageId, data }) => ({
+        url: `/editmessage/${messageId}`,
         method: "PATCH",
         headers: {
           //"Content-Type": "application/json",
           authorization: `Bearer ${JSON.parse(localStorage.getItem("chatAccessToken"))}`,
         },
-        body: payload,
+        body: data,
         credentials: "include",
       }),
       // invalidatesTags: ["Chats"],

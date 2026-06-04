@@ -135,7 +135,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
       if (prepend) {
         const toAdd = [];
         for (const msg of incoming) {
-          if (!messageIdsRef.current.has(msg._id) && (msg.receiverId.includes(user.id) || msg.senderId === user.id)) {
+          if (!messageIdsRef.current.has(msg._id) && (msg?.receiverId?.includes(user.id) || msg.senderId === user.id)) {
             messageIdsRef.current.add(msg._id);
             toAdd.push(msg);
           }
@@ -145,7 +145,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
       else {
         const out = [...prev];
         for (const msg of incoming) {
-          if (!messageIdsRef.current.has(msg._id) && (msg.receiverId.includes(user.id) || msg.senderId === user.id)) {
+          if (!messageIdsRef.current.has(msg._id) && (msg?.receiverId?.includes(user.id) || msg.senderId === user.id)) {
             messageIdsRef.current.add(msg._id);
             out.push(msg);
           }
@@ -499,16 +499,32 @@ export default function UserChat({ currChatId, setLastMessage }) {
     async (messageText) => {
       if (!messageText && fileUpload.length === 0) return false;
 
+      // build form data
+      const payload = new FormData();
+      payload.append("senderId", user.id);
+      // determine receivers (all other members)
+      // const receiverIdArray = chatMeta?.chat?.members
+      //   ?.filter((m) => m._id !== user.id)
+      //   .map((m) => m._id) || [];
+      // payload.append("receiverId", JSON.stringify(receiverIdArray));
+      if (messageText) payload.append("message", messageText);
+      if (replyTarget?.messageId) payload.append("replyToId", replyTarget.messageId);
+      if (pendingMentions.length > 0) {
+        payload.append("mentions", JSON.stringify(pendingMentions.map((m) => m.userId)));
+      }
+      for (const f of fileUpload) payload.append("files", f);
+
       if (editTarget?.messageId) {
         try {
-          const payload = {
-            messageId: editTarget.messageId,
-            message: messageText,
-          };
-          if (pendingMentions.length > 0) {
-            payload.mentions = JSON.stringify(pendingMentions.map((m) => m.userId));
-          }
-          const res = await editMessageMutation(payload).unwrap();
+          payload.append("messageId", editTarget.messageId);
+          // const payload = {
+          //   messageId: editTarget.messageId,
+          //   message: messageText,
+          // };
+          // if (pendingMentions.length > 0) {
+          //   payload.mentions = JSON.stringify(pendingMentions.map((m) => m.userId));
+          // }
+          const res = await editMessageMutation({messageId: editTarget.messageId, data: payload}).unwrap();
           const editedMsg = res.chat;
           setMessages((prev) =>
             prev.map((m) => (String(m._id) === String(editedMsg._id) ? editedMsg : m))
@@ -528,20 +544,6 @@ export default function UserChat({ currChatId, setLastMessage }) {
           return false;
         }
       }
-      // build form data
-      const payload = new FormData();
-      payload.append("senderId", user.id);
-      // determine receivers (all other members)
-      // const receiverIdArray = chatMeta?.chat?.members
-      //   ?.filter((m) => m._id !== user.id)
-      //   .map((m) => m._id) || [];
-      // payload.append("receiverId", JSON.stringify(receiverIdArray));
-      if (messageText) payload.append("message", messageText);
-      if (replyTarget?.messageId) payload.append("replyToId", replyTarget.messageId);
-      if (pendingMentions.length > 0) {
-        payload.append("mentions", JSON.stringify(pendingMentions.map((m) => m.userId)));
-      }
-      for (const f of fileUpload) payload.append("files", f);
          
       const optimistic = {
         _id: "temp-" + Date.now(),
@@ -558,7 +560,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
           : undefined,
         mentions: pendingMentions,
         senderId: user.id,
-        receiverId: receiverIdArray,
+        // receiverId: receiverIdArray,
         conversationId: chatMeta?.chat?._id,
         timestamp: new Date().toISOString(),
         isEdited: false,
