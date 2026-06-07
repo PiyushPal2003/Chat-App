@@ -33,6 +33,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
   const user = useSelector((s) => s.auth);
   const { socket, typingStatus } = getSocket();
   const virtuosoRef = useRef(null);
+  console.log("Rendering UserChat. Current chat ID:", currChatId);
 
   // RTK Query hooks
   const { data: chatMeta } = useFetchChatQuery(currChatId, { skip: !currChatId });
@@ -77,6 +78,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
   // Pagination state
   const [hasMore, setHasMore] = useState(false);
   const [hasMoreBottom, setHasMoreBottom] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
 
   // Virtualization: firstItemIndex for prepending
@@ -163,6 +165,7 @@ export default function UserChat({ currChatId, setLastMessage }) {
   // Initial load & chat change
   useEffect(() => {
     if (!currChatId) return;
+    setIsLoadingMessages(true);
     setMessages([]);
     messageIdsRef.current = new Set();
     setHasMore(false);
@@ -183,7 +186,8 @@ export default function UserChat({ currChatId, setLastMessage }) {
         setHasMore(Boolean(res?.hasMore ?? (resMessages.length || 0) >= 15));
         setHasMoreBottom(Boolean(res?.hasMoreBottom ?? (resMessages.length || 0) >= 15));
       })
-      .catch((err) => console.error("Failed to fetch messages:", err));
+      .catch((err) => console.error("Failed to fetch messages:", err))
+      .finally(() => setIsLoadingMessages(false));
   }, [currChatId, addMessagesDedup, fetchMessagesTrigger]);
 
   useEffect(() => {
@@ -648,76 +652,88 @@ export default function UserChat({ currChatId, setLastMessage }) {
       />
 
       {/* Messages - Virtualized */}
-      <Virtuoso
-        ref={virtuosoRef}
-        className="bg-gray-300 flex-1"
-        data={flattenedMessages}
-        firstItemIndex={firstItemIndex}
-        // initialTopMostItemIndex={flattenedMessages.length > 0 ? flattenedMessages.length - 1 : 0}
-        atTopThreshold={120}
-        atTopStateChange={handleAtTopStateChange}
-        atBottomThreshold={120}
-        atBottomStateChange={handleAtBottomStateChange}
-        rangeChanged={handleRangeChanged}
-        followOutput="smooth"
-        components={{
-          Header: () => isLoadingOlder ? (
-            <div className="flex justify-center py-4">
-              <Spinner className="size-8" />
-            </div>
-          ) : null,
+      {isLoadingMessages && flattenedMessages.length === 0 ? (
+        <div className="bg-gray-300 flex-1 flex items-center justify-center">
+          <Spinner className="size-8" />
+        </div>
+      ) : flattenedMessages.length === 0 ? (
+        <div className="bg-gray-300 flex-1 flex items-center justify-center text-center px-4">
+          <div className="px-4 py-2 text-sm font-medium text-gray-600">
+            Send you first message to start the conversation!
+          </div>
+        </div>
+      ) : (
+        <Virtuoso
+          ref={virtuosoRef}
+          className="bg-gray-300 flex-1"
+          data={flattenedMessages}
+          firstItemIndex={firstItemIndex}
+          // initialTopMostItemIndex={flattenedMessages.length > 0 ? flattenedMessages.length - 1 : 0}
+          atTopThreshold={120}
+          atTopStateChange={handleAtTopStateChange}
+          atBottomThreshold={120}
+          atBottomStateChange={handleAtBottomStateChange}
+          rangeChanged={handleRangeChanged}
+          followOutput="smooth"
+          components={{
+            Header: () => isLoadingOlder ? (
+              <div className="flex justify-center py-4">
+                <Spinner className="size-8" />
+              </div>
+            ) : null,
 
-          // Footer: () => <div style={{ height: 40 }} />
-        }}
-        itemContent={(index, item) => {
-          // Date header
-          if (item._type === 'header') {
+            // Footer: () => <div style={{ height: 40 }} />
+          }}
+          itemContent={(index, item) => {
+            // Date header
+            if (item._type === 'header') {
+              return (
+                <div className="px-4">
+                  <div className="flex justify-center sticky top-0 z-10">
+                    <span
+                      className="text-center font-semibold bg-[#665757a6] text-white my-3 rounded-full"
+                      style={{ fontSize: "0.8rem", padding: "0.3rem 0.4rem" }}
+                    >
+                      {convertDateToReadable(item.date)}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+            
+            // Message bubble
             return (
               <div className="px-4">
-                <div className="flex justify-center sticky top-0 z-10">
-                  <span
-                    className="text-center font-semibold bg-[#665757a6] text-white my-3 rounded-full"
-                    style={{ fontSize: "0.8rem", padding: "0.3rem 0.4rem" }}
-                  >
-                    {convertDateToReadable(item.date)}
-                  </span>
-                </div>
+                <MessageBubble
+                  message={item}
+                  isMine={String(item.senderId) === String(user.id)}
+                  canEdit={
+                    String(item.senderId) === String(user.id) &&
+                    (Date.now() - new Date(item.timestamp).getTime() <= 15 * 60 * 1000) &&
+                    !(Array.isArray(item?.message?.url) && item.message.url.length > 0) &&
+                    !(Boolean(item?.forwardInfo?.isForwarded) || item?.message?.text?.includes?.("|Forwarded|"))
+                  }
+                  canDelete={
+                    (String(item.senderId) === String(user.id) &&
+                    (Date.now() - new Date(item.timestamp).getTime() <= 15 * 60 * 1000))
+                    ||
+                    (chatMeta?.chat?.isGroupChat && (chatMeta?.chat?.admin || []).some((id) => String(id) === String(user.id)))
+                  }
+                  isGroupChat={chatMeta?.chat?.isGroupChat}
+                  senderInfo={chatMembers[item.senderId]}
+                  chatMembers={chatMembers}
+                  currentUserId={user.id}
+                  onReply={handleReplyAction}
+                  onForward={handleForwardAction}
+                  onEdit={handleEditAction}
+                  onDelete={handleDeleteAction}
+                  readState={chatMeta?.chat?.readState}
+                />
               </div>
             );
-          }
-          
-          // Message bubble
-          return (
-            <div className="px-4">
-              <MessageBubble
-                message={item}
-                isMine={String(item.senderId) === String(user.id)}
-                canEdit={
-                  String(item.senderId) === String(user.id) &&
-                  (Date.now() - new Date(item.timestamp).getTime() <= 15 * 60 * 1000) &&
-                  !(Array.isArray(item?.message?.url) && item.message.url.length > 0) &&
-                  !(Boolean(item?.forwardInfo?.isForwarded) || item?.message?.text?.includes?.("|Forwarded|"))
-                }
-                canDelete={
-                  (String(item.senderId) === String(user.id) &&
-                  (Date.now() - new Date(item.timestamp).getTime() <= 15 * 60 * 1000))
-                  ||
-                  (chatMeta?.chat?.isGroupChat && (chatMeta?.chat?.admin || []).some((id) => String(id) === String(user.id)))
-                }
-                isGroupChat={chatMeta?.chat?.isGroupChat}
-                senderInfo={chatMembers[item.senderId]}
-                chatMembers={chatMembers}
-                currentUserId={user.id}
-                onReply={handleReplyAction}
-                onForward={handleForwardAction}
-                onEdit={handleEditAction}
-                onDelete={handleDeleteAction}
-                readState={chatMeta?.chat?.readState}
-              />
-            </div>
-          );
-        }}
-      />
+          }}
+        />
+      )}
 
       {/* Input */}
       <ChatInput

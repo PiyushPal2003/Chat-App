@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { useState, useRef } from "react";
 import {useDispatch} from "react-redux";
 import toast, { Toaster } from 'react-hot-toast';
-import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { login } from "../Redux/Reducers/authSlice";
 import {useNavigate} from "react-router-dom";
 import axios from "axios";
@@ -15,6 +15,8 @@ export function LoginForm({
   ...props
 }) {
 
+  const signupPasswordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8}$";
+  const signupPasswordTitle = "Password must be exactly 8 characters and include uppercase, lowercase, and a number.";
   const [authState, setAuthState] = useState('Login');
   const [passVisible, setPassVisible] = useState(false);
   const [authType, setAuthType] = useState('Login');
@@ -412,7 +414,18 @@ export function LoginForm({
           </div>
 
           <div className="flex items-between border shadow-xs" style={{ border: '1.2px solid #e5e5e5', borderRadius: '0.6rem' }}>
-            <Input className="border-0 focus-visible:ring-0 focus-visible:outline-none" id="password" type={passVisible ? "text" : "password"} pattern={authType == "^.{0,8}$"} title="Must contain Uppercase, Lowercase and Numbers, upto 8 characters" name="password" required />
+            <Input
+              className="border-0 focus-visible:ring-0 focus-visible:outline-none"
+              id="password"
+              placeholder="Password"
+              type={passVisible ? "text" : "password"}
+              pattern={authState === 'Sign up' ? signupPasswordPattern : undefined}
+              minLength={authState === 'Sign up' ? 8 : undefined}
+              maxLength={authState === 'Sign up' ? 8 : undefined}
+              title={authState === 'Sign up' ? signupPasswordTitle : undefined}
+              name="password"
+              required
+            />
 
             {
               passVisible ? (

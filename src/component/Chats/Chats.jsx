@@ -48,8 +48,11 @@ export default function Chats() {
   const { data, error, isLoading, isSuccess } = useGetChatsQuery(user?.id, { skip: !user?.id });
   const { data: userData } = useGetUserQuery(undefined, { skip: !user?.id });
 
-  const cleanLastMessageText = (text = "") =>
-    text.replace("|SystemGenerated|", "").replace("|Forwarded|", "").trim();
+  const cleanLastMessageText = (text) =>
+    String(text ?? "")
+      .replace("|SystemGenerated|", "")
+      .replace("|Forwarded|", "")
+      .trim();
 
   // const getUnreadChatCount = (chat) =>{
   //   if(!chat?.lastMessageId || !chat?.readState?.[user?.id]?.lastSeenMessageId){
@@ -490,47 +493,71 @@ export default function Chats() {
     </div>
   );
 
+  const hasChats = (data?.chats?.length || 0) > 0;
+
   return (
     <div className="w-full h-screen bg-[#111b21]">
-      {data?.chats?.length === 0 ? (
-        <div className="h-full flex items-center justify-center text-center px-4 bg-white">
-          <div>
-            <h1 className="font-bold text-2xl mb-3">No Chats Found</h1>
-            <p>Start a new chat by clicking on the user icon.</p>
+      <div className="h-full grid grid-cols-1 lg:grid-cols-[370px_1fr]">
+        <aside className="hidden lg:flex flex-col bg-white border-r">
+          {sidebarHeader}
+          <div className="flex-1 overflow-y-auto">
+            {hasChats ? (
+              renderChatList(false)
+            ) : (
+              <div className="h-full flex items-center justify-center text-center p-4">
+                <div>
+                  <h1 className="font-bold text-xl mb-2">No Chats Found</h1>
+                  <p className="text-gray-500">Click the user icon above to start a new chat.</p>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
-        <div className="h-full grid grid-cols-1 lg:grid-cols-[370px_1fr]">
-          <aside className="hidden lg:flex flex-col bg-white border-r">
-            {sidebarHeader}
-            <div className="flex-1 overflow-y-auto">{renderChatList(false)}</div>
-          </aside>
+        </aside>
 
-          <div className="relative h-full bg-gray-300">
-            <button
-              type="button"
-              className="lg:hidden absolute top-2 left-2 z-20 bg-white border rounded-full p-2 shadow"
-              onClick={() => setMobileSidebarOpen(true)}
-              aria-label="Open chat list"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="size-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5m-16.5 5.25h16.5m-16.5 5.25h16.5" />
-              </svg>
-            </button>
+        <div className="relative h-full bg-gray-300">
+          <button
+            type="button"
+            className="lg:hidden absolute top-2 left-2 z-20 bg-white border rounded-full p-2 shadow"
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="Open chat list"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="size-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5m-16.5 5.25h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+          {hasChats && currChat ? (
             <UserChat currChatId={currChat} setLastMessage={setLastMessage} />
-          </div>
-
-          <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
-            <SheetContent side="left" className="w-[88%] p-0 sm:max-w-sm">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Chats</SheetTitle>
-              </SheetHeader>
-              {sidebarHeader}
-              <div className="flex-1 overflow-y-auto bg-white">{renderChatList(true)}</div>
-            </SheetContent>
-          </Sheet>
+          ) : (
+            <div className="h-full flex items-center justify-center text-center px-4 bg-white">
+              <div>
+                <h1 className="font-bold text-2xl mb-3">No Chats Found</h1>
+                <p className="text-gray-500">Open the chat list to start a new chat.</p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+          <SheetContent side="left" className="w-[88%] p-0 sm:max-w-sm">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Chats</SheetTitle>
+            </SheetHeader>
+            {sidebarHeader}
+            <div className="flex-1 overflow-y-auto bg-white">
+              {hasChats ? (
+                renderChatList(true)
+              ) : (
+                <div className="h-full flex items-center justify-center text-center p-4">
+                  <div>
+                    <h1 className="font-bold text-xl mb-2">No Chats Found</h1>
+                    <p className="text-gray-500">Use the user icon above to start a new chat.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }

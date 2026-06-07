@@ -42,7 +42,7 @@ export default function LoginPage() {
         <img
           src="/assets/Lets_Chat_Logo.png"
           alt="Let's Chat Logo"
-          className="h-[50%] w-auto object-contain"
+          className="h-[40%] w-auto object-contain"
           style={{ mixBlendMode: "multiply" }}
         />
       </div>
