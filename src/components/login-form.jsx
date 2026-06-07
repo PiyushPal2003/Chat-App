@@ -9,6 +9,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { login } from "../Redux/Reducers/authSlice";
 import {useNavigate} from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../Redux/apiRTK/api";
 
 export function LoginForm({
   className,
@@ -71,7 +72,7 @@ export function LoginForm({
       data.profilePhoto = profilePhoto;
     }
 
-    axios.post( 'http://localhost:5000/api/auth/register' , data, {
+    axios.post( `${API_BASE_URL}/auth/register` , data, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -140,7 +141,7 @@ export function LoginForm({
     submitRefbtn.current.disabled = true;
     console.log('Google Sign Up:', res);
 
-      axios.post('http://localhost:5000/api/auth/googleregister', {googleAuthToken: res}, {
+      axios.post(`${API_BASE_URL}/auth/googleregister`, {googleAuthToken: res}, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -216,7 +217,7 @@ export function LoginForm({
       password: e.target.password.value
     }
 
-    axios.post('http://localhost:5000/api/auth/login', data, {
+    axios.post(`${API_BASE_URL}/auth/login`, data, {
       headers:{
         "Content-Type": 'application/JSON'
       },
@@ -309,7 +310,7 @@ export function LoginForm({
     submitRefbtn.current.disabled = true;
     console.log('Google Sign In:', res);
 
-      axios.post('http://localhost:5000/api/auth/googlelogin', {googleAuthToken: res}, {
+      axios.post(`${API_BASE_URL}/auth/googlelogin`, {googleAuthToken: res}, {
         headers: {
           'Content-Type': 'application/json',
         },

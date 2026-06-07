@@ -1,8 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { login, logout } from "../Reducers/authSlice";
 
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://letschatserver1.vercel.app/api";
+
 const baseQuery = fetchBaseQuery({ 
-  baseUrl: `http://localhost:5000/api`,
+  baseUrl: API_BASE_URL,
   credentials: "include",
   prepareHeaders: (headers) => {
     const token = JSON.parse(localStorage.getItem("chatAccessToken"));
