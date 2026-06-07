@@ -249,7 +249,7 @@ export default function Chats() {
               <button type="button" className="rounded-full">
                 <img
                   src={user?.profilePhoto === "NA" ? "./assets/user_img.jpg" : user?.profilePhoto}
-                  className="h-9 w-9 rounded-full object-cover"
+                  className="h-9 w-9 rounded-full object-cover cursor-pointer"
                   alt="profile"
                 />
               </button>
@@ -379,7 +379,7 @@ export default function Chats() {
           }}
         >
           <DialogTrigger asChild>
-            <button type="button" className="text-gray-700 p-1 rounded hover:bg-white mr-10 lg:mr-0" aria-label="Start new chat">
+            <button type="button" className="text-gray-700 p-1 rounded hover:bg-white mr-10 lg:mr-0 cursor-pointer" aria-label="Start new chat">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
