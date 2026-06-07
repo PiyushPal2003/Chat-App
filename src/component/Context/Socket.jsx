@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import io from "socket.io-client";
-import toast, { Toaster } from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import api from '../../Redux/apiRTK/api';
+import api, { API_BASE_URL } from '../../Redux/apiRTK/api';
 import { onlineUsersList } from '../../Redux/Reducers/authSlice';
 
 
 const SocketContext = createContext();
 const getSocket = () => useContext(SocketContext);
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_BASE_URL.replace(/\/api\/?$/, "");
+const OFFLINE_GRACE_MS = 5000;
 
 export default function Socket({children}) {
   // const socket = useMemo(() =>{ 
@@ -16,8 +17,9 @@ export default function Socket({children}) {
   const dispatch = useDispatch();
   const [currChat, setCurrChat] = useState();
   const [typingStatus, setTypingStatus] = useState({});
+  const offlinePresenceTimerRef = useRef(null);
 
-  const socket = useMemo(() => io('http://localhost:5000', { withCredentials: true }) ,[] );
+  const socket = useMemo(() => io(SOCKET_URL, { withCredentials: true }) ,[] );
 
   useEffect(()=>{
 
@@ -36,12 +38,22 @@ export default function Socket({children}) {
 
     socket.on("USER_CONNECTED", (data) => {
       console.log("User connected:", data);
+      if (offlinePresenceTimerRef.current) {
+        clearTimeout(offlinePresenceTimerRef.current);
+        offlinePresenceTimerRef.current = null;
+      }
       dispatch(onlineUsersList(data));
     });
     
     socket.on("USER_DISCONNECTED", (data) => {
       console.log("User disconnected:", data);
-      dispatch(onlineUsersList(data));
+      if (offlinePresenceTimerRef.current) {
+        clearTimeout(offlinePresenceTimerRef.current);
+      }
+      offlinePresenceTimerRef.current = setTimeout(() => {
+        dispatch(onlineUsersList(data));
+        offlinePresenceTimerRef.current = null;
+      }, OFFLINE_GRACE_MS);
     });
 
     socket.on("newChat", (data) => {
@@ -97,9 +109,12 @@ export default function Socket({children}) {
     // });
     
     return()=>{
+      if (offlinePresenceTimerRef.current) {
+        clearTimeout(offlinePresenceTimerRef.current);
+      }
       socket.disconnect();
     }
-  }, []);
+  }, [dispatch, socket]);
 
   return (
     <SocketContext.Provider value={{socket, currChat, setCurrChat, typingStatus}}>

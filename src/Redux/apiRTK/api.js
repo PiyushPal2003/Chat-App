@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { login, logout } from "../Reducers/authSlice";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://letschatserver1.vercel.app/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 const baseQuery = fetchBaseQuery({ 
   baseUrl: API_BASE_URL,
