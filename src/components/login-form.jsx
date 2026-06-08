@@ -21,12 +21,14 @@ export function LoginForm({
   const [authState, setAuthState] = useState('Login');
   const [passVisible, setPassVisible] = useState(false);
   const [authType, setAuthType] = useState('Login');
+  const [profilePreview, setProfilePreview] = useState("./assets/user_img.jpg");
   const submitRefbtn = useRef(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   function changeAuthState() {
     submitRefbtn.current.disabled = false;
+    setProfilePreview("./assets/user_img.jpg");
     setAuthState((prev)=> prev === 'Login' ? 'Sign up' : 'Login');
     setAuthType(authState === 'Login' ? 'Sign up' : 'Login');
   }
@@ -41,7 +43,7 @@ export function LoginForm({
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        document.querySelector('img').src = e.target.result;
+        setProfilePreview(e.target.result);
       };
       reader.readAsDataURL(file);
     }
@@ -387,9 +389,9 @@ export function LoginForm({
 
       {authState == 'Sign up' && (
         <div className="flex items-center justify-center flex-col">
-          <img src="./assets/user_img.jpg" className="w-17 h-17 rounded-full object-cover" />
+          <img src={profilePreview} className="w-17 h-17 rounded-full object-cover" alt="profile preview" />
           <Label htmlFor="profile-photo" className="cursor-pointer text-sm hover:underline">Upload Profile Photo</Label>
-          <input type="file" id="profile-photo" className="hidden" placeholder="Upload Profile Photo" name="profilePhoto" onChange={handleProfilePhoto}/>
+          <input type="file" id="profile-photo" className="hidden" placeholder="Upload Profile Photo" name="profilePhoto" accept="image/*" onChange={handleProfilePhoto}/>
         </div>
       )}
 

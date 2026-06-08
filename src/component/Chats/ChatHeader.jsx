@@ -45,9 +45,9 @@ export default function ChatHeader({
 
   // Render online/typing status
   const renderStatus = () => {
-    if (chatMeta?.chat?.isGroupChat) {
-      const usersTyping = typingStatus?.[currChatId] || [];
+    const usersTyping = typingStatus?.[currChatId] || [];
 
+    if (chatMeta?.chat?.isGroupChat) {
       if (usersTyping.length > 0) {
         return (
           <span className="text-[0.8rem] text-blue-500">
@@ -68,6 +68,10 @@ export default function ChatHeader({
     }
 
     // 1:1 chat
+    if (usersTyping.some((typingUserId) => String(typingUserId) === String(otherMember?._id))) {
+      return <span className="text-[0.7rem] text-blue-500">typing...</span>;
+    }
+
     const isOnline = user.onlineUsers[otherMember?._id];
     return isOnline ? (
       <span className="text-[0.7rem] text-green-500">🟢 Online</span>
