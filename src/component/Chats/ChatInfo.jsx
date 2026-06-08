@@ -318,6 +318,17 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
         return raw;
       }
     };
+    const formatJoinedDate = (dateValue) => {
+      const date = new Date(dateValue);
+      if (Number.isNaN(date.getTime())) return "Not available";
+
+      return date.toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: "Asia/Kolkata",
+      });
+    };
 
 // console.log('open state in chat info:', open);
   useEffect(() => {
@@ -513,14 +524,10 @@ const ChatInfo = React.memo(({data, user, open, setOpen, allMessages, setAllMess
               </h1>
               <p className='text-center text-gray-600'>
                 {
-                  `Joined On: ${new Date(
-                        data?.chat?.members?.find(member => member._id !== user.id)?.timestamp
-                      ).toLocaleString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        timeZone: "Asia/Kolkata",
-                      })}`
+                  `Joined On: ${formatJoinedDate(
+                    data?.chat?.members?.find(member => member._id !== user.id)?.createdAt ||
+                    data?.chat?.members?.find(member => member._id !== user.id)?.timestamp
+                  )}`
                 }
               </p>
               <p className='text-center text-gray-600'>{data?.chat?.members?.filter(member => member._id !== user.id)[0]?.email}</p>
